@@ -54,10 +54,13 @@ use File::Basename;
 use lib dirname (__FILE__);
 use bamqc;
 
+
+
 use JSON::PP; # imports encode_json, decode_json, to_json and from_json
+ 
 
 ### ASSESS options and generate the parameter hash
-my $opt_string = "s:i:l:r:b:j:q:ch:D";
+my $opt_string = "s:i:l:r:b:j:q:ch:H:D";
 getopts ($opt_string, \%opt) or usage("Incorrect arguments.");
 
 
@@ -72,9 +75,54 @@ usage("Missing Input stream.  This script must receive input from samtools view"
 
 ### load the bed file, store in the parameter hash
 $p{bed}=read_bed($p{bedFile}) if($p{bedFile});
+if($p{bed}=~/ERROR/){
+	print usage($p{bed});
+}
+
+
+if($p{histFile}){
+
+	
+	%{$p{jsonHash}{"non collapsed bases covered"}}=get_hist_cvg($p{histFile},"noncollapsed",2000);   ### add to the jsonhash 
+	%{$p{jsonHash}{"collapsed bases covered"}}=get_hist_cvg($p{histFile},"collapsed",2000);
+}
+
+sub get_hist_cvg{
+	my($file,$class,$max)=@_;	
+	### extract the all lines, and generate a cumulative histogram, 0..2000
+	my @lines=`cat $file | grep "^$class"`;
+	chomp @lines;
+
+	my $cum=0;
+	my %cvg;
+	my $prev=0;
+	map{
+		my @f=split /\t/;
+		my $lvl=$f[1];
+		my $percent_bases=(1-$cum)*100;
+		$cum+=$f[4];
+		$cvg{$lvl}=$percent_bases;   ## key = coverage level, value is bases at this level of coverage or greater
+		
+        ### fill in
+        for my $l( ($prev+1)..$lvl){  $cvg{$l}=$percent_bases; }
+        $prev=$lvl;
+	}@lines;
+	
+	my %cvg2=map{ 
+		my $depth=$cvg{$_} || 0;
+		($_,$depth);
+	} 0..$max;
+	
+	return %cvg2;
+}
+
+
 
 $p{sortedChars}= [split " ", q(! " # $ % & ' \( \) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \\ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~)];
 
+
+#print STDERR Dumper($p{sortedChars}); 
+#<$TTY>;
 
 ### initalize entries to 0
 ### form the json hash at the enc
@@ -126,7 +174,6 @@ while (<STDIN>){   ### need to check that STDIN exists, and run usage if it does
 	my $mappedstrand=$flag & 16 ? "-" : "+";
 	my $R=($flag & 64) ? "R1" : ($flag & 128) ? "R2" : "R?"; 
 	$qualString=reverse($qualString) if($mappedstrand eq "-");
-		
 	my ($readLength,$mapped_bases)=cigar_stats($chrom,$start1,$start2,$R,$mappedstrand,$cigarstring,\%stats,\%p);   ### get cigar stats for this string
 	
 	#### mismatch statistics
@@ -326,7 +373,7 @@ my %jsonHash=generate_jsonHash(\%stats,\%p);
 
 
 ### for debug
-#for my $key(sort keys %jsonHash){   #next unless($key=~/read \?/);
+#for my $key(sort keys %jsonHash){   next unless($key=~/target/);
 #	print STDERR "$key\n";<$TTY>;
 #	print STDERR Dumper($jsonHash{$key});<$TTY>;
 #}
@@ -347,14 +394,14 @@ sub validate_opts{
 	usage("Help requested.") if($opt{h});
 	
 	my %param;
-	
-	$param{sampleRate}			=	$opt{'s'} || 1000;
+	#default sampleRate is 1001 to catch both R1s and R2s more evenly
+	$param{sampleRate}			=	$opt{'s'} || 1001;
 	$param{normalInsertMax}		=	$opt{'i'} || 1500;
 	$param{bedFile}				=	$opt{'r'} || "/oicr/data/genomes/homo_sapiens/UCSC/Genomic/UCSC_hg19_random/hg19_random.genome.sizes.bed";
 	$param{qualCut}				=	$opt{'q'} || 30;
 	
 	if($opt{'j'}){
-		if( -e $opt{'j'} ){
+		if( -e $opt{'j'} ){#### is it a file
 			my $jsonString;
 			(open my $JSON,"<",$opt{'j'}) || die "unable to open json formatted string in $opt{j}";
 			while(<$JSON>){
@@ -363,7 +410,10 @@ sub validate_opts{
 			}
 			close $JSON;
 			$param{jsonHash}=decode_json($jsonString);
-			
+		}elsif($opt{'j'}=~/^\{.*\}$/){
+		
+			$param{jsonHash}=decode_json($opt{'j'});   	 ### appears to be the json hash passed directly
+				
 		}else{
 			warn "file containing json formatted string $opt{j} not found";
 		}	
@@ -390,6 +440,12 @@ sub validate_opts{
 		use Data::Dumper;
 		(open ($param{TTY}),"/dev/tty") || die "unable to open keyboard input"; ## will allow code to be modified with <$TTY>, to hold for keyboard input.  <STDIN> will not work as this script reads from a stream
 	}
+	
+	if($opt{'H'}){  ### extract additional informaiton from a Bedtools coverage histogram file
+		usage("bedtools histogram file $opt{H} not found") if(! -e $opt{'H'});
+		$param{histFile}=$opt{'H'};
+		
+	}	
 
 	
 	return %param;
@@ -408,6 +464,7 @@ sub usage{
 	print "\t-c enables % base covered reporting. Sets sample rate to 1 (overrides -s), and runs long.\n";
 	print "\t-b bam path (for recording path and timestamp).\n";
 	print "\t-j file containing additional JSON formatted data string. e.g. '{\"sample\":\"TLCR2C10n\",\"library\":\"TLCR_2C10_nn_n_PE_501_nn\",\"barcode\":\"TAGCTT\",\"instrument\":\"h802\",\"run name\":\"110616_SN802_0060_AC00FWACXX\",\"lane\":\"4\"}'\n";
+	print "\t-H bedtools histogram file, for coverage analysis\n";
 	print "\t-D debug mode\n";
 	print "\t-h displays this usage message.\n";
 

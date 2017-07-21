@@ -22,6 +22,7 @@ package jsonToGraphs;
 use strict;
 use warnings;
 use Exporter;
+use Data::Dumper;
 
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
@@ -30,9 +31,20 @@ $VERSION	=	1.00;
 @ISA		=	qw(Exporter);
 @EXPORT		=	qw(readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
 					readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
-					indel_by_cycle softclip_by_cycle hardclip_by_cycle);
+					indel_by_cycle softclip_by_cycle hardclip_by_cycle coverage_by_depth);
 
 
+
+#### coverage by depth chart, requires that the json has contains coverage information
+sub coverage_by_depth{
+	my($jHash,$p,$path,$title)=@_;
+	
+	#print STDERR Dumper(keys %$jHash);
+	#<STDIN>;
+	#print STDERR Dumper($$jHash{"collapsed bases covered"});
+	#<STDIN>;
+
+}
 
 
 ##### pieChart, read mapping
@@ -87,11 +99,16 @@ sub noncollapsed_base_coverage{
 	if (defined $$jHash{"non collapsed bases covered"})
 	{
 		my %histHash = %{ $$jHash{"non collapsed bases covered"} };
+		
+	
+		
 		if ((scalar keys %histHash) > 0)
 		{
 			for (my $i = 1; $i <= $$p{basecoverage}{displaymax}; $i++)
 			{
-				my $percentCovered=exists $histHash{$i} ? ($histHash{$i} / $targetSize) * 100 : 0;
+				#my $percentCovered=exists $histHash{$i} ? ($histHash{$i} / $targetSize) * 100 : 0;
+				my $percentCovered=$histHash{$i} ? $histHash{$i} :   0;
+				
 				push(@{$barChart{values}},$percentCovered);
 				push(@{$barChart{labels}},"\"${i}x\"");
 				my $colourCode=$percentCovered < $$p{basecoverage}{low} ? "bad" : $percentCovered<$$p{basecoverage}{high} ? "mid" : "good";
@@ -113,17 +130,20 @@ sub collapsed_base_coverage{
 	if (defined $$jHash{"collapsed bases covered"})
 	{
 		my %histHash = %{ $$jHash{"collapsed bases covered"} };
+		
 		if ((scalar keys %histHash) > 0)
 		{
 			for (my $i = 1; $i <= $$p{basecoverage}{displaymax}; $i++)
 			{
-				my $percentCovered=exists $histHash{$i} ? ($histHash{$i} / $targetSize) * 100 : 0;
+				#my $percentCovered=exists $histHash{$i} ? ($histHash{$i} / $targetSize) * 100 : 0;
+				my $percentCovered=$histHash{$i} ? $histHash{$i}  :   0;
+				
 				push(@values, $percentCovered);
 				push(@labels, "\"${i}x\"");
 				
 				my $colour_code=$percentCovered < $$p{basecoverage}{low} ? "bad" : 
 								$percentCovered < $$p{basecoverage}{high} ? "mid" :
-								"high";
+								"good";
 				push (@colours, $$p{colours}{$colour_code});
 			}
 		}
