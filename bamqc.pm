@@ -49,6 +49,7 @@ use strict;
 use warnings;
 use Exporter;
 use JSON::PP;
+use File::Basename;
 
 
 ### for debug
@@ -475,16 +476,32 @@ sub read_bed{
 	my ($file)=@_;
 	my %bed;
 	my $targetCount=0;
-	open (my $BEDFILE,"<",$file) or usage("Couldn't open target file: $file.\n");
+	open (my $BEDFILE,"<",$file) or return("ERROR : Couldn't open target file: $file.\n");
 	while (<$BEDFILE>){
 		chomp;
 		next if(/^#/);
 		my @f = split /\t/;
 	
 		$targetCount++;
-		push(@{$bed{intervals}{$f[0]}},{Start=>$f[1],Stop=>$f[2],Size=>$f[2]-$f[1]+1} );
-		$bed{targetSize} += $f[2] - $f[1];
+		
+		my $interval_size=$f[2]-$f[1];
+		
+		### interval_size needs to be larger than 0
+		if($interval_size<1){
+			return("ERROR : the bedfile $file contains an interval with an invalid size $_ \n");
+		} 
+		
+		### also want to check that the sort order is correct
+		
+		
+		push(@{$bed{intervals}{$f[0]}},{Start=>$f[1],Stop=>$f[2],Size=>$interval_size});
+		$bed{targetSize} += $interval_size;
 	    #$bed{Hist}{"$f[0]\t$f[1]\t$f[2]"} = 0;
+	    
+	    
+	    
+	    
+	    
 	}
 	close $BEDFILE;
 	
@@ -1132,7 +1149,7 @@ sub load_json{
 		print STDERR "reading from $file\n";
 		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
 		if (my $line = <$FILE>){
-			$hash{$file} = decode_json($line);
+			$hash{basename($file)} = decode_json($line);
 		}else{
 			warn "No data found in $file!\n";
 		}
