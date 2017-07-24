@@ -4,74 +4,131 @@ use warnings;
 use Test::More;
 use Text::Diff;
 use bamqc 'load_json';
-use Cwd 'abs_path'; 
-use File::Basename 'dirname';
-
-my $actual_json = abs_path('test/actual_output.json');
-my $actual_txt = abs_path('test/actual_output.txt');
-my $expected_json = abs_path('test/expected_output.json');
-my $expected_txt = abs_path('test/expected_output.txt');
+use File::Path 'remove_tree';
 
 
-#########################################################
+sub run_bamqc {
+    my($opts,$output_dir)=@_;
+    my $TESTS_FAIL=0;
+    
+    print "################# Running bamqc in $output_dir with options $opts\n";   
+ 
+    my $actual_json = "$output_dir/actual_output.json";
+    my $actual_txt = "$output_dir/actual_output.txt";
+    my $expected_json = "$output_dir/expected_output.json";
+    my $expected_txt = "$output_dir/expected_output.txt";
 
-### BAM QC TEST
+    my $bamqctest="samtools view test/neat_5x_EX_hg19_chr21.bam | perl bamqc.pl -r test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed -j test/metadata.json   $opts > $actual_json 2> $actual_txt";
 
-#########################################################
+    is ( system($bamqctest), 0, "bamqc.pl test with opts: '$opts' returns 0 exit status");
+    ok ( -e $actual_json , 'the json output exists');
+    ok ( -e $actual_txt, 'the text output exists');
 
-my $TESTS_FAIL=0;
+    #check that the expected and actual text files are the same
+    my $diff = diff $actual_txt, $expected_txt, { CONTEXT=>1, STYLE=>'OldStyle' };
+    $TESTS_FAIL=1 if not is ( $diff, '', "text files are the same");
+    
+    #check that the expected and actual JSON files are the same
+    my %jsons=load_json($actual_json, $expected_json);
+    $TESTS_FAIL=1 if not is_deeply ( $jsons{$actual_json}, $jsons{$expected_json}, "json files are the same"); 
+    
+    #if the file comparison tests fail, save the results. Otherwise, remove them
+    if ($TESTS_FAIL) {
+        print "Differing file is saved at $actual_txt and $actual_json \n";
+    } else {
+        unlink $actual_txt;
+        unlink $actual_json;
+    }
 
-my $vanilla_test="samtools view test/neat_5x_EX_hg19_chr21.bam | perl bamqc.pl -r test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed -j test/metadata.json -s 2000 -i 1500 -q 30 > $actual_json 2> $actual_txt";
+    return $TESTS_FAIL;
+}
 
-is ( system($vanilla_test), 0, 'vanilla bamqc.pl test returns 0 exit status');
-ok ( -e $actual_json , 'the json output exists');
-ok ( -e $actual_txt, 'the text output exists');
+sub run_genericrunreport {
+    my($run_opts,$output_dir)=@_;
+    my $TESTS_FAIL=0;
 
-#check that the expected and actual text files are the same
-my $diff = diff $actual_txt, $expected_txt, { CONTEXT=>1, STYLE=>'OldStyle' };
-$TESTS_FAIL=1 if not is ( $diff, '', "text files are the same");
+    print "########## Running report in $output_dir with options $run_opts\n";
+    
+    my $test_json = "$output_dir/test.json";
+    my $actual_html="$output_dir/actual_output.html";
+    my $expected_html="$output_dir/expected_output.html";
 
-#check that the expected and actual JSON files are the same
-my %jsons=load_json($actual_json, $expected_json);
-$TESTS_FAIL=1 if not is_deeply ( $jsons{$actual_json}, $jsons{$expected_json}, "json files are the same"); 
+    my $reporttest="perl jsonToGenericRunReport.pl $run_opts $test_json | grep -v 'Generic run report generated on' > $actual_html";
+    
+    is ( system($reporttest), 0, "jsonToGenericRunReport.pl test with opts: '$run_opts' returns 0 exit status");
+    ok ( -e $actual_html , 'the html output exists');
+    
+    my $diff = diff $actual_html, $expected_html, { CONTEXT=>1, STYLE=>'OldStyle' };
+    $TESTS_FAIL=1 if not is ( $diff, '', "html files are the same");
+    
+    if ($TESTS_FAIL) {
+        print "Differing files are saved at $actual_html\n";
+    } else {
+        unlink $actual_html;
+    }
+}
 
-#if the file comparison tests fail, save the results. Otherwise, remove them
-if ($TESTS_FAIL) {
-    print "Differing file is saved at $actual_txt and $actual_json \n";
-    BAIL_OUT("Fix the above problems before proceeding with further tests.");
-} else {
-    unlink $actual_txt;
+sub test_genericrunreport_graphs {
+    my($output_dir,$has_coverage)=@_;
+    my $TESTS_FAIL=0;
+    print "####### testing report graphs in $output_dir\n";
+
+    my $actual_dir="$output_dir/test.json.graphs";
+    my $expected_dir="$output_dir/expected.graphs";
+
+    ok ((-e $actual_dir && -d $actual_dir), "Graphs directory exists: $actual_dir");
+
+    my @graphs=("hardCycle.png","misCycle.png","qualHist.png", "softCycle.png", "insert.png", "qualCycle.png","readPie.png", "indelCycle.png", "readLength.png");
+
+    my @optgraphs=();
+    
+    my $diff;
+    foreach my $graph (@graphs) {
+        $TESTS_FAIL=test_image_rcode("$actual_dir/$graph", "$expected_dir/$graph");
+    }
+   
+    if ($has_coverage) {
+        my @optgraphs=("collapsedCover.png", "nonCollapsedCover.png");
+        foreach my $graph (@optgraphs) {
+            $TESTS_FAIL=test_image_rcode("$actual_dir/$graph", "$expected_dir/$graph");
+        }
+    }
+ 
+    if ($TESTS_FAIL) {
+        print "Differing files are saved at $actual_dir\n";
+    } else {
+        remove_tree($actual_dir, safe=>0);
+    }
 
 }
 
-
-###########################################################
-
-### Run Report test
-
-###########################################################
-$TESTS_FAIL=0;
-
-my $actual_html=abs_path('test/actual_output.html');
-my $expected_html=abs_path('test/expected_output.html');
-
-my $json_dir=dirname($actual_json);
-
-$vanilla_test="perl jsonToGenericRunReport.pl $actual_json | grep -v 'Generic run report generated on' | perl -p -e 's#$json_dir/##g'> $actual_html";
-
-is ( system($vanilla_test), 0, 'vanilla jsonToGenericRunReport.pl test returns 0 exit status');
-ok ( -e $actual_html , 'the html output exists');
-
-$diff = diff $actual_html, $expected_html, { CONTEXT=>1, STYLE=>'OldStyle' };
-$TESTS_FAIL=1 if not is ( $diff, '', "text files are the same");
-
-if ($TESTS_FAIL) {
-    print "Differing files are saved at $actual_json and $actual_html\n";
-} else {
-    unlink $actual_html;
-    unlink $actual_json;
-
+sub test_image_rcode {
+    my($actual, $expected)=@_;
+    my $TESTS_FAIL=0;
+    ok (-e $actual, "the image $actual exists");
+    my $diff= diff "$actual.Rcode", "$expected.Rcode", { CONTEXT=>1, STYLE=>'OldStyle' };
+    $TESTS_FAIL=1 if not is ( $diff, '', "$actual.Rcode files are the same as expected");
+    return $TESTS_FAIL;
 }
+
+#### test start
+
+my ($do_cleanup,$dont_cleanup,$do_run_qc,$dont_run_qc)=(1,0,1,0);
+
+run_bamqc("-s 2000 -i 1500 -q 30","test/bamqc_vanilla");
+
+run_genericrunreport("","test/report_vanilla");
+
+run_genericrunreport("-r -g -p -H","test/report_most_opts");
+test_genericrunreport_graphs("test/report_most_opts",0);
+
+run_bamqc("-c -i 1500 -q 30","test/bamqc_coverage");
+
+run_genericrunreport("-c","test/report_coverage");
+
+run_genericrunreport("-g","test/report_coverage_graphs");
+test_genericrunreport_graphs("test/report_coverage_graphs",1);
+
 
 
 

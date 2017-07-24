@@ -1,0 +1,31 @@
+Sampling every read and calculating bases covered.
+Loaded 2085 targets.
+
+Use of uninitialized value $chrom in string ne at bamqc.pm line 854, <STDIN> line 80020.
+
+
+Total reads: 80020
+Mapped reads: 80020
+Non primary reads: 0
+MAPQ < 30 reads: 0
+Unmapped reads: 0
+Sampled reads: 80020
+Reads on target: 50246
+
+Reads missing MD tags!: 80020
+
+Aligned bases: 8081705
+Soft clipped bases: 0
+Hard clipped bases: 0
+Mismatched bases: 0
+Deleted base count: 458
+Inserted base count: 315
+Average read length: 101.000000
+
+Mean insert: 249.987578
+Stdev insert: 9.894506
+Pairs with insert longer than 1500: 0
+Pairs mapped to different chromosomes: 0
+
+Reads per start point: 1.000450
+

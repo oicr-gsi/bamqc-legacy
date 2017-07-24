@@ -1,0 +1,10 @@
+xvals <- c(101, 101, 101)
+yvals <- c(40010, 80020, 80020)
+cols <- c("forestgreen", "forestgreen", "forestgreen")
+png(filename = "test/report_coverage_graphs/test.json.graphs/readLength.png", width = 640, height = 640)
+plot(xvals, yvals, main="Simulated_Run Lane: 1 Barcode: NoIndex\nSimulated_5X_chr21 Read Length Histogram", type="n", col="black", xlab="Read Length (bp)", ylab="Number of reads")
+for(i in 1:(length(yvals)-1))
+{
+polygon(c(xvals[i] - 0.5, xvals[i] - 0.5, xvals[i] + 0.5, xvals[i] + 0.5), c(0, yvals[i], yvals[i], 0), col=cols[i], border=NA)
+}
+dev.off()
