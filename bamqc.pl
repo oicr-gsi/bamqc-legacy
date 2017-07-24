@@ -260,7 +260,8 @@ for my $R(qw/R1 R2 R?/){
 ### cut the number of significant figures down to 6 after the decimal point
 $stats{startPoint}{RPSP}=(sprintf "%.6f", $stats{startPoint}{RPSP});
 $stats{stdevInsert}=(sprintf "%.6f", $stats{stdevInsert});	
-
+$stats{meanInsert}=(sprintf "%.6f", $stats{meanInsert});
+$stats{averageReadLength}{overall}=(sprintf "%.6f", $stats{averageReadLength}{overall});
 
 
 #print STDERR Dumper($stats{qualLine});<$TTY>;
