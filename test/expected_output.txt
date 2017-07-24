@@ -19,9 +19,9 @@ Hard clipped bases: 0
 Mismatched bases: 0
 Deleted base count: 0
 Inserted base count: 0
-Average read length: 100.974756310922
+Average read length: 100.974756
 
-Mean insert: 251.352941176471
+Mean insert: 251.352941
 Stdev insert: 7.638457
 Pairs with insert longer than 1500: 0
 Pairs mapped to different chromosomes: 0

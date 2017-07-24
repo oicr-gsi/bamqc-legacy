@@ -5,7 +5,7 @@ use Test::More;
 use Text::Diff;
 use bamqc 'load_json';
 use Cwd 'abs_path'; 
-
+use File::Basename 'dirname';
 
 my $actual_json = abs_path('test/actual_output.json');
 my $actual_txt = abs_path('test/actual_output.txt');
@@ -37,7 +37,8 @@ $TESTS_FAIL=1 if not is_deeply ( $jsons{$actual_json}, $jsons{$expected_json}, "
 
 #if the file comparison tests fail, save the results. Otherwise, remove them
 if ($TESTS_FAIL) {
-    print "Differing file is saved at $actual_txt\n";
+    print "Differing file is saved at $actual_txt and $actual_json \n";
+    BAIL_OUT("Fix the above problems before proceeding with further tests.");
 } else {
     unlink $actual_txt;
 
@@ -54,7 +55,9 @@ $TESTS_FAIL=0;
 my $actual_html=abs_path('test/actual_output.html');
 my $expected_html=abs_path('test/expected_output.html');
 
-$vanilla_test="perl jsonToGenericRunReport.pl $actual_json | grep -v 'Generic run report generated on' > $actual_html";
+my $json_dir=dirname($actual_json);
+
+$vanilla_test="perl jsonToGenericRunReport.pl $actual_json | grep -v 'Generic run report generated on' | perl -p -e 's#$json_dir/##g'> $actual_html";
 
 is ( system($vanilla_test), 0, 'vanilla jsonToGenericRunReport.pl test returns 0 exit status');
 ok ( -e $actual_html , 'the html output exists');
