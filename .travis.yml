@@ -14,6 +14,4 @@ script: perl test.pl
 
 after_failure:
     - echo "#######################FULL OUTPUT###########################"
-    - cat "test/actual_output.json"
-    - cat "test/actual_output.txt"
-    - cat "test/actual_output.html"
+    - find . -name "actual*" -exec cat {} \;
