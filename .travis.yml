@@ -2,6 +2,12 @@ dist: trusty
 language: perl
 perl: 
     - "5.20"
+
+addons:
+  apt:
+    packages:
+    - samtools
+
 script: perl test.pl
 
 
