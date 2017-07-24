@@ -1,0 +1,45 @@
+Reference:		/.mounts/labs/PDE/data/reference/hg19_random/fasta/UCSC/hg19_random.fa (3.20 GB)
+# Sequences:	93 (24 sampled from, 0 bp in total)
+RunDate:		Fri Jul  3 16:16:50 2015
+Command:		/u/mtaschuk/git/neat-sim/genReads.py -p -c 5 -l 101 -o neat_5x_EX_hg19 -r /.mounts/labs/PDE/data/reference/hg19_random/fasta/UCSC/hg19_random.fa -b /.mounts/labs/PDE/data/TargetedSequencingQC/Agilent.SureSelect.All.Exon.V4/SureSelect_All_Exon_V4_Covered_Sorted.bed --SAM --VCF --TXT
+
+
+********* FILES GENERATED *********
+
+Read files:		neat_5x_EX_hg19_read1.fq (877.15 MB)
+				neat_5x_EX_hg19_read2.fq (877.15 MB)
+
+Golden SAM:		neat_5x_EX_hg19_golden.sam (2.02 GB)
+
+Golden VCF:		neat_5x_EX_hg19_golden.vcf (40.63 MB)
+
+
+********* PARAMETERS *********
+
+ReadLen:		101
+MeanFragLen:	250
+FragLen Std:	10
+Avg Coverage:	5.0x in targeted regions, 0.0x elsewhere
+Variant Freq:	0.00034
+SSE rate:		0.01
+SIE rate:		0.01 of all sequencing errors
+QScore Model:	/u/mtaschuk/git/neat-sim/models/qModel_AlvaroPhix.p : [0,41] + 33
+Mutation Model:	DEFAULT
+Windowing:		/.mounts/labs/PDE/data/TargetedSequencingQC/Agilent.SureSelect.All.Exon.V4/SureSelect_All_Exon_V4_Covered_Sorted.bed (51.19 Mbp targeted)
+RNG_SEED:		96736047
+
+
+********* STATS *********
+
+Total Reads:	7286516 (735.94 Mbp)
+Total Runtime:	1629 sec
+
+Variants Introduced:
+	- 916072 SNPs, [4 hets]
+	- 51143 small indels (length 1-5) [1 hets]
+	- 0 SVs
+
+
+*******************************
+For testing purposes, the BAM header and chr21 were grepped from the full file.
+
