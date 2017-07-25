@@ -126,7 +126,7 @@ run_genericrunreport("","test/report_vanilla");
 run_genericrunreport("-r -g -p -H","test/report_most_opts");
 test_genericrunreport_graphs("test/report_most_opts",0);
 
-#run_bamqc("-c -i 1500 -q 30 -j $metadata_file","test/bamqc_coverage");
+run_bamqc("-c -i 1500 -q 30 -j $metadata_file","test/bamqc_coverage");
 
 run_genericrunreport("-c","test/report_coverage");
 
