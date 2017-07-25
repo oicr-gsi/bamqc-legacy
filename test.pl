@@ -5,7 +5,7 @@ use Test::More;
 use Text::Diff;
 use bamqc 'load_json';
 use File::Path 'remove_tree';
-
+use File::Slurp 'read_file';
 
 sub run_bamqc {
     my($opts,$output_dir)=@_;
@@ -18,7 +18,7 @@ sub run_bamqc {
     my $expected_json = "$output_dir/expected_output.json";
     my $expected_txt = "$output_dir/expected_output.txt";
 
-    my $bamqctest="samtools view test/neat_5x_EX_hg19_chr21.bam | perl bamqc.pl -r test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed -j test/metadata.json   $opts > $actual_json 2> $actual_txt";
+    my $bamqctest="samtools view test/neat_5x_EX_hg19_chr21.bam | perl bamqc.pl -r test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed $opts > $actual_json 2> $actual_txt";
 
     is ( system($bamqctest), 0, "bamqc.pl test with opts: '$opts' returns 0 exit status");
     ok ( -e $actual_json , 'the json output exists');
@@ -105,31 +105,35 @@ sub test_genericrunreport_graphs {
 sub test_image_rcode {
     my($actual, $expected)=@_;
     my $TESTS_FAIL=0;
-    ok (-e $actual, "the image $actual exists");
-    my $diff= diff "$actual.Rcode", "$expected.Rcode", { CONTEXT=>1, STYLE=>'OldStyle' };
-    $TESTS_FAIL=1 if not is ( $diff, '', "$actual.Rcode files are the same as expected");
+    if (ok (-e $actual && -e "$actual.Rcode" , "the image and Rcode $actual exists")) {
+        my $diff= diff "$actual.Rcode", "$expected.Rcode", { CONTEXT=>1, STYLE=>'OldStyle' };
+        $TESTS_FAIL=1 if not is ( $diff, '', "$actual.Rcode files are the same as expected");
+    }
     return $TESTS_FAIL;
 }
 
 #### test start
 
-my ($do_cleanup,$dont_cleanup,$do_run_qc,$dont_run_qc)=(1,0,1,0);
+my $metadata_file='test/metadata.json';
+my $metadata_str=read_file($metadata_file);
 
-run_bamqc("-s 2000 -i 1500 -q 30","test/bamqc_vanilla");
+run_bamqc("-s 2000 -i 1500 -q 30 -j $metadata_file ","test/bamqc_vanilla");
+
+run_bamqc("-s 2000 -i 1500 -q 30 -j \"$metadata_str\" ","test/bamqc_vanilla_jsonstring"); 
 
 run_genericrunreport("","test/report_vanilla");
 
 run_genericrunreport("-r -g -p -H","test/report_most_opts");
 test_genericrunreport_graphs("test/report_most_opts",0);
 
-run_bamqc("-c -i 1500 -q 30","test/bamqc_coverage");
+#run_bamqc("-c -i 1500 -q 30 -j $metadata_file","test/bamqc_coverage");
 
 run_genericrunreport("-c","test/report_coverage");
 
 run_genericrunreport("-g","test/report_coverage_graphs");
 test_genericrunreport_graphs("test/report_coverage_graphs",1);
 
-
-
-
+run_bamqc("-H test/bamqc_histo_coverage/test.hist -i 1500 -q 30 -s 2000 -j $metadata_file ", "test/bamqc_histo_coverage");
+run_genericrunreport("-g","test/report_histo_coverage");
+test_genericrunreport_graphs("test/report_histo_coverage",1);
 done_testing();
