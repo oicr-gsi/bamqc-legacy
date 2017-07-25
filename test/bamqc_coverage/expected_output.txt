@@ -1,7 +1,7 @@
 Sampling every read and calculating bases covered.
 Loaded 2085 targets.
 
-Use of uninitialized value $chrom in string ne at bamqc.pm line 854, <STDIN> line 80020.
+Use of uninitialized value $chrom in string ne at bamqc.pm line 871, <STDIN> line 80020.
 
 
 Total reads: 80020

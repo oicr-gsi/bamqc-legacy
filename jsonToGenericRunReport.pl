@@ -132,7 +132,8 @@ if(! exists $opt{H}){
 
 #### get list of files
 my @jsonFiles = @ARGV;
-my %jsonHash = load_json(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
+my ($json_ref, $json_dir_ref)=load_json_and_dirs(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
+my %jsonHash = %{ $json_ref };
 
 
 
@@ -166,7 +167,7 @@ for my $run (sort keys %runList)
 	### do NOT want to send the run list to each of the functions
 	
 	
-	my $plotted=plot_data(\%jsonHash,$scriptPath) if($param{plotData});
+	my $plotted=plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
 	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
 	
 	my @json=sort{$jsonHash{$a}{lane}<=>$jsonHash{$b}{lane}} grep{$jsonHash{$_}{"run name"} eq $run} keys %jsonHash;

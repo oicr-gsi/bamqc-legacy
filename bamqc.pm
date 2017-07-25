@@ -68,7 +68,7 @@ $VERSION	=	1.00;
 @EXPORT		=	qw(read_bed assess_start_point assess_flag cigar_stats  md_stats
 					onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
 					load_param plot_data data_table coverage_table graph_table merge_table 
-					lane_info load_json toPhred generate_jsonHash);
+					lane_info load_json load_json_and_dirs toPhred generate_jsonHash);
 
 =pod
 
@@ -1144,26 +1144,46 @@ sub load_param{
 sub load_json{
 	
 	my @files=@_;
-	my %hash;
+	my %json_hash;
 	for my $file (@files){
 		print STDERR "reading from $file\n";
 		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
 		if (my $line = <$FILE>){
-			$hash{basename($file)} = decode_json($line);
+			$json_hash{basename($file)} = decode_json($line);
 		}else{
 			warn "No data found in $file!\n";
 		}
 	}
-	return %hash;
+	return %json_hash;
 }
+
+sub load_json_and_dirs{
+	
+	my @files=@_;
+	my %json_hash;
+    my %dir_hash;
+	for my $file (@files){
+		print STDERR "reading from $file\n";
+		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
+		if (my $line = <$FILE>){
+			$json_hash{basename($file)} = decode_json($line);
+            $dir_hash{basename($file)} = dirname($file);
+		}else{
+			warn "No data found in $file!\n";
+		}
+	}
+	return (\%json_hash, \%dir_hash);
+}
+
+
 sub plot_data{
-	my ($j,$scriptPath)=@_;
+	my ($j,$scriptPath, $jsonDirs)=@_;
 	for my $rpt (keys %$j){
 		#my $title=exists $$j{$rpt}{"barcode"}? 
 		#		$$j{$rpt}{"run name"} . " Lane: " . $$j{$rpt}{"lane"} . " Barcode: " . $$j{$rpt}{"barcode"} . "\\n" . $$j{$rpt}{"library"}
 		#		$$j{$rpt}{"run name"} . " Lane: " . $$j{$rpt}{"lane"} . "\\n" . $$j{$rpt}{"library"};
 		warn "graphing $rpt\n";
-		my $rv=`$scriptPath/jsonToGraphs.pl $rpt`;
+		my $rv=`$scriptPath/jsonToGraphs.pl $jsonDirs->{$rpt}/$rpt`;
 		return $rpt;
 	}
 }
