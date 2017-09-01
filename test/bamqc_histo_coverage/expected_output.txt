@@ -1,0 +1,30 @@
+Only sampling every 2000 reads.
+Loaded 2085 targets.
+
+
+
+Total reads: 80020
+Mapped reads: 80020
+Non primary reads: 0
+MAPQ < 30 reads: 0
+Unmapped reads: 0
+Sampled reads: 40
+Reads on target: 28
+
+Reads missing MD tags!: 40
+
+Aligned bases: 4040
+Soft clipped bases: 0
+Hard clipped bases: 0
+Mismatched bases: 0
+Deleted base count: 0
+Inserted base count: 0
+Average read length: 100.974756
+
+Mean insert: 251.352941
+Stdev insert: 7.638457
+Pairs with insert longer than 1500: 0
+Pairs mapped to different chromosomes: 0
+
+Reads per start point: 1.000450
+

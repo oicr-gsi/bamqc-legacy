@@ -21,6 +21,7 @@
 
 use strict;
 use warnings;
+use Data::Dumper;
 
 
 use JSON::PP;
@@ -73,10 +74,14 @@ my %param=(
 );
 
 ### plot title is take from the jsonHash, will be modified if there is a barcode indicated
-my $title = exists $jsonHash{"barcode"} ?
+my $title;
+if($jsonHash{"library"} eq "merged"){
+	$title=$jsonHash{"sample"} ."\\nmerged";
+}else{
+	$title = exists $jsonHash{"barcode"} ?
 				$jsonHash{"run name"} . " Lane: " . $jsonHash{"lane"} . " Barcode: " . $jsonHash{"barcode"} . "\\n" . $jsonHash{"library"}
 			: 	$jsonHash{"run name"} . " Lane: " . $jsonHash{"lane"} . "\\n" . $jsonHash{"library"};
-
+}
 
 
 ## dispatch table, with named references to each subroutine
@@ -91,7 +96,8 @@ my %subs=(
 	mismatch_by_cycle 			=> \&mismatch_by_cycle,
 	indel_by_cycle 				=> \&indel_by_cycle,
 	softclip_by_cycle 			=> \&softclip_by_cycle,
-	hardclip_by_cycle 			=> \&hardclip_by_cycle
+	hardclip_by_cycle 			=> \&hardclip_by_cycle,
+	coverage_by_depth			=> \&coverage_by_depth,
 );
 
 ### list of subroutines to call
@@ -100,6 +106,9 @@ my %subs=(
 my @plots=qw/readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
 				readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
 				indel_by_cycle softclip_by_cycle hardclip_by_cycle/;
+				
+#my @plots=qw/coverage_by_depth/;
+
 
 
 for my $plot(@plots){
