@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Test::More;
 use Text::Diff;
-use bamqc 'load_json';
+use GSI::bamqc 'load_json';
 use File::Path 'remove_tree';
 use File::Slurp 'read_file';
 
