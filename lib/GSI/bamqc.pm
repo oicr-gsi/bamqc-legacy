@@ -19,7 +19,7 @@ package GSI::bamqc;
 
 =head1 NAME
 
-bamqc.pm - Perl Library for OICR bamqc and reporting
+bamqc.pm - Perl Library for OICR bamqc
 
 =head1 VERSION
 
@@ -27,18 +27,18 @@ Version 0.01
 
 =head1 SYNOPSIS
 
-Subroutines in support of bamqc analysis, and construction of html reports
+Subroutines in support of bamqc analysis
 
 =over 2
 
-=item * Usage: use bamqc 
+=item * Usage: use GSI::bamqc 
 
 =back
 
 =head1 AUTHOR
 
-Lawrence Heisler << <lheisler.oicr.on.ca> >>
-Last modified : 2014-12-08
+Lawrence Heisler << <lheisler.oicr.on.ca> >>, Morgan Taschuk
+Last modified : 2017-09
 The Ontario Institute for Cancer Research
 Incorporating code from the original samStats.pl script by Rob Denroche
 
@@ -67,7 +67,9 @@ $VERSION	=	1.00;
 @ISA		=	qw(Exporter);
 @EXPORT		=	qw(read_bed assess_start_point assess_flag cigar_stats  md_stats
 					onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-					load_json load_json_and_dirs toPhred generate_jsonHash);
+					load_json load_json_and_dirs toPhred generate_jsonHash
+                    generate_mismatch_rate generate_indel_rate generate_softclip_rate generate_hardclip_rate generate_error_rate
+                    get_barcode get_group get_raw_reads get_raw_yield get_map_percent get_ontarget_percent get_est_yield get_est_coverage );
 
 =pod
 
@@ -1089,6 +1091,124 @@ sub load_json_and_dirs{
 		}
 	}
 	return (\%json_hash, \%dir_hash);
+}
+
+sub byCycleToCount {
+    my $histRef = $_[0];
+
+    my $sum = 0;
+    for my $i ( keys %{$histRef} )
+    {    # TODO(apmasell): How is this not just values?
+        $sum += $histRef->{$i};
+    }
+
+    return $sum;
+}
+
+
+# Compute a rate from the properties of a run.
+#
+# 1[HashRef]: The hash containing the JSON file contents to analyse.
+# 2[Str]: A prefix to use when accessing the keys of hash.
+# 3[ArrayRef[Str]]: The names of the "by cycle" keys that belong in the numerator.
+# 4[ArrayRef[Str]]: The names of the "by cycle" keys that belong in the denominator.
+# Returns[Str]: A formatted percentage of all the sum of all numerator items divided by the sum of all the denominator items.
+sub generateRatePercent {
+    my ( $hash, $prefix, $numerator_names, $denominator_names ) = @_;
+
+    my $numerator = 0;
+    for my $name ( @{$numerator_names} ) {
+        $numerator +=
+          byCycleToCount( $hash->{ $prefix . $name . " by cycle" } );
+    }
+    my $denominator = 0;
+    for my $name ( @{$denominator_names} ) {
+        $denominator +=
+          byCycleToCount( $hash->{ $prefix . $name . " by cycle" } );
+    }
+    return $numerator * 100.0 / ( $denominator || 1 ) ;
+}
+
+sub generate_error_rate {
+    my ( $hash, $prefix ) = @_;
+    return generateRatePercent( $hash, $prefix,
+             ["mismatch", "insertion", "deletion" ], 
+            ["aligned"]
+        );
+}
+
+sub generate_mismatch_rate {
+    my ( $hash, $prefix ) = @_;
+    return generateRatePercent( $hash, $prefix, 
+            ["mismatch"], 
+            ["aligned"] );
+}
+
+sub generate_indel_rate {
+    my ( $hash, $prefix ) = @_;
+   return generateRatePercent( $hash, $prefix, 
+            [ "insertion", "deletion" ], 
+            ["aligned"]);
+}
+
+sub generate_softclip_rate {
+    my ( $hash, $prefix ) = @_;
+    return generateRatePercent( $hash, $prefix, 
+            ["soft clip"], 
+            [ "soft clip", "aligned" ]);
+}
+
+sub generate_hardclip_rate {
+    my ( $hash, $prefix ) = @_;
+    return generateRatePercent( $hash, $prefix, 
+            ["hard clip"], 
+            [ "soft clip", "aligned", "hard clip" ]);
+}
+
+sub get_barcode {
+    my ( $jsonHash ) =@_;
+    return exists $jsonHash->{barcode} ? $jsonHash->{barcode} : 'NoIndex';
+}
+
+sub get_group {
+    my ($jsonHash)=@_;
+    return exists $jsonHash->{"group id"}
+            ? exists $jsonHash->{"group id description"}
+                ? $jsonHash->{"group id description"}." ".$jsonHash->{'group id'}
+                : $jsonHash->{'group id'}
+            : "na";
+}
+
+sub get_raw_reads {
+    my ($jsonHash)=@_;
+    return int($jsonHash->{"mapped reads"} + $jsonHash->{"unmapped reads"} + $jsonHash->{"qual fail reads"});
+}
+
+sub get_raw_yield {
+    my ($jsonHash)=@_;
+    return int(GSI::bamqc::get_raw_reads($jsonHash) * $jsonHash->{"average read length"});
+}
+
+sub get_map_percent {
+    my ($jsonHash)=@_;
+    return 100 * ($jsonHash->{"mapped reads"} / ( GSI::bamqc::get_raw_reads($jsonHash) || 1 ));
+}
+
+sub get_ontarget_percent {
+    my ($jsonHash)=@_;
+    return 100 * ($jsonHash->{"reads on target"} / ($jsonHash->{"mapped reads"} || 1) ); # $rawReads) * 100;   # could argue using this either way
+}
+
+sub get_est_yield {
+    my ($jsonHash)=@_;
+    return int($jsonHash->{"aligned bases"} * 
+            (GSI::bamqc::get_ontarget_percent($jsonHash) / 100) / 
+            $jsonHash->{"reads per start point"});
+}
+
+sub get_est_coverage {
+    my ($jsonHash)=@_;
+    return GSI::bamqc::get_est_yield($jsonHash) / $jsonHash->{"target size"};
 }
 
 
