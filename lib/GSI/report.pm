@@ -59,6 +59,7 @@ use File::Basename;
 
 my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
+my $NA="<a class='na'>na</a>";
 
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
@@ -136,7 +137,7 @@ sub get_possible_headers {
 my %plot_names=(
 	read_breakdown		=> "readPie.png",
 	insert_distr		=> "insert.png",
-	read_length			=> "readLength.png",
+	read_length_dist	=> "readLength.png",
 	qual_hist	 		=> "qualHist.png",
 	qual_by_cycle 		=> "qualCycle.png",
 	mismatch_by_cycle 	=> "misCycle.png",
@@ -149,23 +150,6 @@ sub get_possible_plot_names {
     return \%plot_names;
 }
 
-sub load_param{
-	
-	
-	my %param=(
-		#### ordered data_table_columns, modify to limit to specific columns
-		table_headers=>\%table_headers,
-		table_columns=>{   #### will show all possible columns, removing those that need to be explicitly indicated
-			data	=> [qw/lane barcode groupid ext_name library insert_mean read_length raw_reads raw_yield mapped error softclip hardclip rpsp ontarget yield coverage/],
-			graph	=> [qw/lane barcode library read_breakdown insert_distr qual_hist qual_by_cycle mismatch_by_cycle indel_by_cycle softclip_by_cycle hardclip_by_cycle/],
-			merge	=> [qw/sample lanes last_mod avg_read_length error_pc soft_clip_pc reads_on_target_pc reads_on_target bases_on_target coverage coverage8x coverage90 coverageGraph/],
-		},
-		plotnames=>\%plot_names,
-	);
-	return %param;  ### return/capture as a hash
-};
-
-
 sub plot_data{
 	my ($jsonHash,$scriptPath, $jsonDirs)=@_;
 	for my $report (keys %$jsonHash){
@@ -177,6 +161,7 @@ sub plot_data{
 		return $report;
 	}
 }
+
 sub data_table{
 	my($p,$jsonHash,$sorted_lane_list,$run)=@_;
 	my $html="<table border=\"1\" class=\"sortable\">\n";
@@ -245,7 +230,7 @@ sub coverage_table{
 		my $numberOfTargets = $jsonHash->{$report}{"number of targets"};
 		$numberOfTargets =~ s/(^[-+]?\d+?(?=(?>(?:\d{3})+)(?!\d))|\G\d{3}(?=\d))/$1,/g;
 
-		my $linkName=exists $jsonHash->{$report}{barcode} ? "${run}_${lane}_$jsonHash->{$report}{barcode}" : "${run}_${lane}";
+		my $linkName=get_link_name($jsonHash);
 		$html.="<tr>\n";
 		$html.="<td><a href=\"#$linkName\">$jsonHash->{$report}{lane}</a></td>";
 			
@@ -274,6 +259,7 @@ sub graph_table{
 	
 	my @cols=@{$p->{table_columns}{graph}};
 
+
 	# print image thumbnail table
 	my $html="<table border=\"1\" class=\"sortable\">\n<thead>\n<tr>\n";
 	
@@ -285,38 +271,30 @@ sub graph_table{
 	$html.="<tbody>\n";
 	for my $report (@$sorted_lane_list){
 		$html.="<tr>\n";
-		my $lane=$jsonHash->{$report}{"lane"};	
-		my $linkName=exists $jsonHash->{$report}{barcode} ? "${run}_${lane}_$jsonHash->{$report}{barcode}" : "${run}_${lane}";
-		# read_breakdown insert_distr qual_hist qual_by_cycle mismatch_by_cycle indel_by_cycle softclip_by_cycle
-		my %td;
-			
-		$td{run_name}="<td>".$jsonHash->{$report}{"run name"}."</td>";
-		$td{lane}="<td>$lane</td>";
-		$td{barcode}=exists $jsonHash->{$report}{barcode} ? "<td>$jsonHash->{$report}{barcode}</td>" : "<td></td>";
-		$td{library}="<td>$jsonHash->{$report}{library}</td>";
+        
+        my $rowHash = get_all_fields($jsonHash->{$report});
 
-					
-		if($p->{linked_columns}){
-			my $tag_open="<a href=\"#$linkName\">";
-			my $tag_close="</a>";
-			for my $col(@{$p->{linked_columns}}){
-				if($td{$col}){
-					$td{$col}=~s/<td>/<td>$tag_open/ ;
-					$td{$col}=~s/<\/td>/$tag_close<\/td>/;
-				}
-			}
-		}				
-			
 		### the remaining columns are all plots
-		for my $col(@cols){
-			next if($td{$col});  ## skip if column is already set (ie. a non-plot columns)
-			my $plot=$p->{plotnames}{$col} || "";
-			$td{$col} ="<td><a href=\"${report}.graphs/$plot\">";
-			$td{$col}.="<img src=\"${report}.graphs/$plot\" width=\"100\" height=\"100\"/>";
-			$td{$col}.="</a></td>";
-		}
+#		for my $col(@cols){
+#			next if($td->{$col});  ## skip if column is already set (ie. a non-plot columns)
+#			my $plot=$p->{plotnames}{$col} || "";
+#			$td->{$col} ="<td><a href=\"${report}.graphs/$plot\">";
+#			$td->{$col}.="<img src=\"${report}.graphs/$plot\" width=\"100\" height=\"100\"/>";
+#			$td->{$col}.="</a></td>";
+#		}
+        format_na($rowHash);
+        format_big_numbers($rowHash);
+        format_2decimals($rowHash);
+        my $linkName=get_link_name($jsonHash->{$report});
+        my @linked_columns = ( 'lane', 'barcode', 'library' ) ;
+        foreach (@linked_columns) {
+            $rowHash->{$_}="<a href=\"#$linkName\">$rowHash->{$_}</a>";
+        }
 
-		$html.=join("",@td{@cols});
+        make_thumbnail($rowHash);
+        add_td_tags($rowHash);
+
+		$html.=join("",@{$rowHash}{@cols});
 		$html.="</tr>\n";
 	}
 $html.="</tbody>\n</table>\n";
@@ -326,6 +304,103 @@ sub format_number{
 	my ($n)=@_;
 	$n=~s/(^[-+]?\d+?(?=(?>(?:\d{3})+)(?!\d))|\G\d{3}(?=\d))/$1,/g;
 	return $n;
+}
+
+sub get_all_fields {
+    my ($jsonHash) =@_;
+    
+    my %row=map{ $_ => $NA} (keys %{$table_headers{'data'}}, keys %plot_names);
+    $row{run_name}=$jsonHash->{"run name"};        
+    $row{lane}=$jsonHash->{lane};
+    $row{barcode}=GSI::bamqc::get_barcode($jsonHash);
+    $row{groupid}=GSI::bamqc::get_group($jsonHash);
+    $row{ext_name}=$jsonHash->{'external name'} if exists $jsonHash->{"external name"};
+    $row{library}=$jsonHash->{library};
+    $row{raw_reads}=GSI::bamqc::get_raw_reads($jsonHash);
+    $row{raw_yield}=GSI::bamqc::get_raw_yield($jsonHash);
+    $row{read_length}=$jsonHash->{"number of ends"} eq "paired end" 
+                       ? $jsonHash->{"read 1 average length"} . ", " . $jsonHash->{"read 2 average length"}
+                       : sprintf "%.2f", $jsonHash->{"read ? average length"};
+	$row{mapped}=GSI::bamqc::get_map_percent($jsonHash);
+    $row{softclip1}=GSI::bamqc::generate_softclip_rate($jsonHash, "read 1");
+    $row{softclip2}=GSI::bamqc::generate_softclip_rate($jsonHash, "read 2");
+
+    $row{indel1}=GSI::bamqc::generate_indel_rate($jsonHash, "read 1");
+    $row{indel2}=GSI::bamqc::generate_indel_rate($jsonHash, "read 2");
+ 
+    $row{hardclip1}=GSI::bamqc::generate_hardclip_rate($jsonHash, "read 1");
+    $row{hardclip2}=GSI::bamqc::generate_hardclip_rate($jsonHash, "read 2");
+
+    $row{mismatch1}=GSI::bamqc::generate_mismatch_rate($jsonHash, "read 1");
+    $row{mismatch2}=GSI::bamqc::generate_mismatch_rate($jsonHash, "read 2");
+    $row{error1}=GSI::bamqc::generate_error_rate($jsonHash, "read 1");
+    $row{error2}=GSI::bamqc::generate_error_rate($jsonHash, "read 2");
+ 
+    $row{rpsp}=$jsonHash->{"reads per start point"}; 
+    $row{ontarget}=GSI::bamqc::get_ontarget_percent($jsonHash);
+    $row{yield}=GSI::bamqc::get_est_yield($jsonHash);
+    $row{coverage}=GSI::bamqc::get_est_coverage($jsonHash);
+    $row{insert_mean}=$jsonHash->{"insert mean"} if $jsonHash->{"number of ends"} eq "paired end";
+    $row{ins_stddev}=$jsonHash->{"insert stdev"} if $jsonHash->{"number of ends"} eq "paired end";
+
+    ### the remaining columns are all plots
+    foreach (keys %plot_names) {
+        $row{$_}="$jsonHash->{basename}.graphs/$plot_names{$_}";
+    }
+
+    return \%row;
+}
+
+sub make_thumbnail {
+    my $rowHash=shift;
+    map { 
+        $rowHash->{$_}="<a href=\"$rowHash->{$_}\"><img src=\"$rowHash->{$_}\" width=\"100\" height=\"100\"/></a> "
+    } keys %plot_names;
+    
+}
+
+sub format_na {
+    my $rowHash=shift;
+    #if anything is na, grey it out
+    map { $rowHash->{$_}=$NA if ($rowHash->{$_} eq 'na') } keys %$rowHash;
+    return $rowHash;
+}
+
+sub format_2decimals {
+    my $rowHash=shift;
+    #format floats to have two decimal places
+    my @printf_cols = ('mapped', 'softclip1', 'softclip2', 'hardclip1', 'hardclip2', 'mismatch1', 'mismatch2', 
+                       'error1', 'error2', 'rpsp', 'ontarget', 'coverage', 'insert_mean', 'ins_stddev', 'indel1', 'indel2');
+    foreach my $col (@printf_cols) {
+       $rowHash->{$col}=sprintf ("%.2f", $rowHash->{$col}) if ($rowHash->{$col} ne $NA);
+    }
+    return $rowHash;
+}
+
+sub add_hrefs {
+    my $rowHash=shift;
+    ### add hyperlinks to the required cells
+	my $linkName=exists $rowHash->{barcode}
+           ? $rowHash->{"run_name"} ."_$rowHash->{lane}_$rowHash->{barcode}"
+           : $rowHash->{"run_name"}."_$rowHash->{lane}";
+    return $rowHash;
+}
+
+sub add_td_tags {
+    my $rowHash=shift;
+    #add table tags
+    map { $rowHash->{$_}="<td>$rowHash->{$_}</td>" } keys %$rowHash;
+    return $rowHash;
+}
+
+sub format_big_numbers {
+    my $rowHash=shift;
+    #add commas to big numbers
+    my @format_number_cols = ('raw_reads', 'raw_yield', 'yield');
+    foreach (@format_number_cols) {
+       $rowHash->{$_}=format_number($rowHash->{$_});
+    }
+    return $rowHash;
 }
 
 sub data_row{
@@ -358,96 +433,38 @@ sub data_row{
 		### the %row hash key = column identifier
 		### the final list of cells to include in the row is @cols, extracted from %p
 
-        my $NA="<a class='na'>na</a>";
-        my %row=map{ $_ => $NA} keys %{$table_headers{'data'}};
-        $row{run_name}=$jsonHash->{"run name"};        
-        $row{lane}=$jsonHash->{lane};
-        $row{barcode}=GSI::bamqc::get_barcode($jsonHash);
-        $row{groupid}=GSI::bamqc::get_group($jsonHash);
-        $row{ext_name}=$jsonHash->{'external name'} if exists $jsonHash->{"external name"};
-        $row{library}=$jsonHash->{library};
-        $row{raw_reads}=GSI::bamqc::get_raw_reads($jsonHash);
-        # cast to int because average length is only from mapped reads (and may result in ugly decimal)
-        $row{raw_yield}=GSI::bamqc::get_raw_yield($jsonHash);
-        $row{read_length}=$jsonHash->{"number of ends"} eq "paired end" 
-                            ? $jsonHash->{"read 1 average length"} . ", " . $jsonHash->{"read 2 average length"}
-                            : sprintf "%.2f", $jsonHash->{"read ? average length"};
-		$row{mapped}=GSI::bamqc::get_map_percent($jsonHash);
-        $row{softclip1}=GSI::bamqc::generate_softclip_rate($jsonHash, "read 1");
-        $row{softclip2}=GSI::bamqc::generate_softclip_rate($jsonHash, "read 2");
-       
-        $row{indel1}=GSI::bamqc::generate_indel_rate($jsonHash, "read 1");
-        $row{indel2}=GSI::bamqc::generate_indel_rate($jsonHash, "read 2");
- 
-        $row{hardclip1}=GSI::bamqc::generate_hardclip_rate($jsonHash, "read 1");
-        $row{hardclip2}=GSI::bamqc::generate_hardclip_rate($jsonHash, "read 2");
 
-        $row{mismatch1}=GSI::bamqc::generate_mismatch_rate($jsonHash, "read 1");
-        $row{mismatch2}=GSI::bamqc::generate_mismatch_rate($jsonHash, "read 2");
-
-        $row{error1}=GSI::bamqc::generate_error_rate($jsonHash, "read 1");
-        $row{error2}=GSI::bamqc::generate_error_rate($jsonHash, "read 2");
- 
-        $row{rpsp}=$jsonHash->{"reads per start point"}; 
-        $row{ontarget}=GSI::bamqc::get_ontarget_percent($jsonHash);
-        $row{yield}=GSI::bamqc::get_est_yield($jsonHash);
-        $row{coverage}=GSI::bamqc::get_est_coverage($jsonHash);
-        $row{insert_mean}=$jsonHash->{"insert mean"} if $jsonHash->{"number of ends"} eq "paired end";
-        $row{ins_stddev}=$jsonHash->{"insert stdev"} if $jsonHash->{"number of ends"} eq "paired end";
-
+        my $rowHash = get_all_fields($jsonHash);
 
 		### these are cummulative totals, need to be added and returne....as part of parameters?  or caputred
-		%stats=(RawYield=>$row{raw_yield},Reads=>$row{raw_reads},EstYield=>$row{yield});
+		%stats=(RawYield=>$rowHash->{raw_yield},Reads=>$rowHash->{raw_reads},EstYield=>$rowHash->{yield});
 
-        #if anything is na, grey it out
-        keys %row;
-        #add table tags
-        while(my($k, $v) = each %row) {
-            if ($v eq 'na') {
-                $row{$k}=$NA;
-            }
-        }
-		
-        #add commas to big numbers
-        my @format_number_cols = ('raw_reads', 'raw_yield', 'yield');
-        foreach (@format_number_cols) {
-            $row{$_}=format_number($row{$_});
-        }
-
-        #format floats to have two decimal places
-        my @printf_cols = ('mapped', 'softclip1', 'softclip2', 'hardclip1', 'hardclip2', 'mismatch1', 'mismatch2', 
-                            'error1', 'error2', 'rpsp', 'ontarget', 'coverage', 'insert_mean', 'ins_stddev', 'indel1', 'indel2');
-        foreach my $col (@printf_cols) {
-            if ($row{$col} ne $NA) {
-                $row{$col}=sprintf ("%.2f", $row{$col});
-            }
-        }
-        
-		#### add hyperlinks to the required cells
-		my $linkName= exists $jsonHash->{barcode}
-                        ? $jsonHash->{"run name"} ."_$jsonHash->{lane}_$jsonHash->{barcode}"
-                		: $jsonHash->{"run name"}."_$jsonHash->{lane}";
-		
+        format_na($rowHash);
+        format_big_numbers($rowHash);
+        format_2decimals($rowHash);
+    
+        my $linkName=get_link_name($jsonHash);    
         my @linked_columns = ( 'lane', 'barcode', 'library' ) ;
         foreach (@linked_columns) {
-            $row{$_}="<a href=\"#$linkName\">$row{$_}</a>";
+            $rowHash->{$_}="<a href=\"#$linkName\">$rowHash->{$_}</a>";
         }
+        
+	    add_td_tags($rowHash);	
 
-        #reset the iterator
-        keys %row;
-        #add table tags
-        while(my($k, $v) = each %row) {
-            $row{$k}="<td>$v</td>";
-        }
-
-		
 		$stats{qualCut}{$jsonHash->{"qual cut"}} = 1;
 
-		$html="<tr>\n".join("\n",@row{@cols})."</tr>";
+		$html="<tr>\n".join("\n",@{$rowHash}{@cols})."</tr>";
 		
 		return ($html,\%stats);
 	}
 	
+}
+
+sub get_link_name {
+    my $jsonHash =shift;
+    return exists $jsonHash->{barcode}
+           ? $jsonHash->{"run name"} ."_$jsonHash->{lane}_$jsonHash->{barcode}"
+           : $jsonHash->{"run name"}."_$jsonHash->{lane}";
 }
 
 sub lane_info{

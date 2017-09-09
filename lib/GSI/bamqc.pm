@@ -1068,6 +1068,8 @@ sub load_json{
 		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
 		if (my $line = <$FILE>){
 			$json_hash{basename($file)} = decode_json($line);
+            $json_hash{basename($file)}{basename}=basename($file);
+            $json_hash{basename($file)}{dirname}=dirname($file);
 		}else{
 			warn "No data found in $file!\n";
 		}
@@ -1085,6 +1087,8 @@ sub load_json_and_dirs{
 		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
 		if (my $line = <$FILE>){
 			$json_hash{basename($file)} = decode_json($line);
+            $json_hash{basename($file)}{basename}=basename($file);
+            $json_hash{basename($file)}{dirname}=dirname($file);
             $dir_hash{basename($file)} = dirname($file);
 		}else{
 			warn "No data found in $file!\n";
@@ -1203,12 +1207,12 @@ sub get_est_yield {
     my ($jsonHash)=@_;
     return int($jsonHash->{"aligned bases"} * 
             (GSI::bamqc::get_ontarget_percent($jsonHash) / 100) / 
-            $jsonHash->{"reads per start point"});
+            ($jsonHash->{"reads per start point"} || 1) );
 }
 
 sub get_est_coverage {
     my ($jsonHash)=@_;
-    return GSI::bamqc::get_est_yield($jsonHash) / $jsonHash->{"target size"};
+    return GSI::bamqc::get_est_yield($jsonHash) / ($jsonHash->{"target size"} || 1);
 }
 
 
