@@ -18,7 +18,7 @@ before_install:
     - cd -
 
 script: 
-    - export PERL5LIB="$PERL5LIB:$CWD/lib"
+    - export PERL5LIB="$PERL5LIB:lib"
     - perl test.pl
 
 after_failure:
