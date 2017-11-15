@@ -13,7 +13,6 @@ addons:
     - r-base
 
 before_install:
-    - cpanm --installdeps .
     - git clone git@github.com:oicr-gsi/gsi-website.git
     - cd gsi-website && perl Makefile.PL && make && make install
 
