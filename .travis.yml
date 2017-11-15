@@ -3,14 +3,21 @@ language: perl
 perl: 
     - "5.20"
 
+git:
+  depth: e
+
 addons:
   apt:
     packages:
     - samtools
     - r-base
 
-script: perl test.pl
+before_install:
+    - cpanm --installdeps .
+    - git clone git@github.com:oicr-gsi/gsi-website.git
+    - cd gsi-website && perl Makefile.PL && make && make install
 
+script: perl test.pl
 
 after_failure:
     - echo "#######################FULL OUTPUT###########################"
