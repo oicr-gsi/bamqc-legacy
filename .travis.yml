@@ -13,7 +13,7 @@ addons:
     - r-base
 
 before_install:
-    - git clone https://github.com/oicr-gsi/bamqc.git
+    - git clone https://github.com/oicr-gsi/gsi-website.git 
     - cd gsi-website && perl Makefile.PL && make && make install
 
 script: perl test.pl
