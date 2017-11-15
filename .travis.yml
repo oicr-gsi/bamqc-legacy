@@ -17,7 +17,9 @@ before_install:
     - cd gsi-website && perl Makefile.PL && make && make install
     - cd -
 
-script: perl test.pl
+script: 
+    - export PERL5LIB="$PERL5LIB:$CWD/lib"
+    - perl test.pl
 
 after_failure:
     - echo "#######################FULL OUTPUT###########################"
