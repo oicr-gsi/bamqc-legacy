@@ -54,7 +54,7 @@ use File::Basename;
 
 ### for debug
 
-#use Data::Dumper;
+use Data::Dumper;
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input";
 
 my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
@@ -220,25 +220,18 @@ sub coverage_table{
 	$html.=$covXheadings.$covXheadings;
 	$html.="\n</tr>\n</thead>\n<tbody>\n";
 
-
+    my @cols=( 'lane','barcode', 'library', 'target_size', 'num_targets');
 	
 	for my $report (@$sorted_lane_list){
-		my $lane=$jsonHash->{$report}{"lane"};	
-		
-		my $targetSize = $jsonHash->{$report}{"target size"};
-		$targetSize =~ s/(^[-+]?\d+?(?=(?>(?:\d{3})+)(?!\d))|\G\d{3}(?=\d))/$1,/g;
-		my $numberOfTargets = $jsonHash->{$report}{"number of targets"};
-		$numberOfTargets =~ s/(^[-+]?\d+?(?=(?>(?:\d{3})+)(?!\d))|\G\d{3}(?=\d))/$1,/g;
-
-		my $linkName=get_link_name($jsonHash);
-		$html.="<tr>\n";
-		$html.="<td><a href=\"#$linkName\">$jsonHash->{$report}{lane}</a></td>";
-			
-		$html.=exists $jsonHash->{$report}{barcode} ? "<td><a href=\"#$linkName\">$jsonHash->{$report}{barcode}</a></td>" : "<td>none</td>";
-		$html.="<td><a href=\"#$linkName\">$jsonHash->{$report}{library}</a></td>";
-		$html.="<td>$targetSize</td>";
-		$html.="<td>$numberOfTargets</td>";
-		$targetSize = $jsonHash->{$report}{"target size"};		# so it isn't formatted with commas
+        my $rowHash = get_all_fields($jsonHash->{$report});
+        my $targetSize = $rowHash->{"target_size"};
+        format_big_numbers($rowHash);
+        add_hrefs($rowHash);
+      
+        $html.="<tr>\n"; 
+        foreach my $col (@cols){
+            $html.="<td>$rowHash->{$col}</td>";
+        }
 		for my $collapsed ("non collapsed", "collapsed"){
 			for my $i (@covX){
 				my $basesCovered = exists $jsonHash->{$report}{"$collapsed bases covered"}{$i} ? $jsonHash->{$report}{"$collapsed bases covered"}{$i} : 0;
@@ -271,7 +264,6 @@ sub graph_table{
 	$html.="<tbody>\n";
 	for my $report (@$sorted_lane_list){
 		$html.="<tr>\n";
-        
         my $rowHash = get_all_fields($jsonHash->{$report});
 
 		### the remaining columns are all plots
@@ -285,12 +277,7 @@ sub graph_table{
         format_na($rowHash);
         format_big_numbers($rowHash);
         format_2decimals($rowHash);
-        my $linkName=get_link_name($jsonHash->{$report});
-        my @linked_columns = ( 'lane', 'barcode', 'library' ) ;
-        foreach (@linked_columns) {
-            $rowHash->{$_}="<a href=\"#$linkName\">$rowHash->{$_}</a>";
-        }
-
+        add_hrefs($rowHash);
         make_thumbnail($rowHash);
         add_td_tags($rowHash);
 
@@ -308,7 +295,7 @@ sub format_number{
 
 sub get_all_fields {
     my ($jsonHash) =@_;
-    
+  
     my %row=map{ $_ => $NA} (keys %{$table_headers{'data'}}, keys %plot_names);
     $row{run_name}=$jsonHash->{"run name"};        
     $row{lane}=$jsonHash->{lane};
@@ -342,6 +329,9 @@ sub get_all_fields {
     $row{coverage}=GSI::bamqc::get_est_coverage($jsonHash);
     $row{insert_mean}=$jsonHash->{"insert mean"} if $jsonHash->{"number of ends"} eq "paired end";
     $row{ins_stddev}=$jsonHash->{"insert stdev"} if $jsonHash->{"number of ends"} eq "paired end";
+
+    $row{target_size}=$jsonHash->{"target size"};
+    $row{num_targets} = $jsonHash->{"number of targets"};
 
     ### the remaining columns are all plots
     foreach (keys %plot_names) {
@@ -383,6 +373,11 @@ sub add_hrefs {
 	my $linkName=exists $rowHash->{barcode}
            ? $rowHash->{"run_name"} ."_$rowHash->{lane}_$rowHash->{barcode}"
            : $rowHash->{"run_name"}."_$rowHash->{lane}";
+
+    my @linked_columns = ( 'lane', 'barcode', 'library' ) ;
+    foreach (@linked_columns) {
+        $rowHash->{$_}="<a href=\"#$linkName\">$rowHash->{$_}</a>";
+    }
     return $rowHash;
 }
 
@@ -396,7 +391,7 @@ sub add_td_tags {
 sub format_big_numbers {
     my $rowHash=shift;
     #add commas to big numbers
-    my @format_number_cols = ('raw_reads', 'raw_yield', 'yield');
+    my @format_number_cols = ('raw_reads', 'raw_yield', 'yield','target_size','num_targets');
     foreach (@format_number_cols) {
        $rowHash->{$_}=format_number($rowHash->{$_});
     }
@@ -405,7 +400,7 @@ sub format_big_numbers {
 
 sub data_row{
 	my($p,$section,$jsonHash)=@_;  ### parameter hash, jsonhash or header indication
-	
+
 	my $html;my %stats;
 	my @cols=@{$p->{table_columns}{data}};
 	
@@ -433,7 +428,6 @@ sub data_row{
 		### the %row hash key = column identifier
 		### the final list of cells to include in the row is @cols, extracted from %p
 
-
         my $rowHash = get_all_fields($jsonHash);
 
 		### these are cummulative totals, need to be added and returne....as part of parameters?  or caputred
@@ -442,13 +436,7 @@ sub data_row{
         format_na($rowHash);
         format_big_numbers($rowHash);
         format_2decimals($rowHash);
-    
-        my $linkName=get_link_name($jsonHash);    
-        my @linked_columns = ( 'lane', 'barcode', 'library' ) ;
-        foreach (@linked_columns) {
-            $rowHash->{$_}="<a href=\"#$linkName\">$rowHash->{$_}</a>";
-        }
-        
+        add_hrefs($rowHash);     
 	    add_td_tags($rowHash);	
 
 		$stats{qualCut}{$jsonHash->{"qual cut"}} = 1;
@@ -461,7 +449,7 @@ sub data_row{
 }
 
 sub get_link_name {
-    my $jsonHash =shift;
+    my $jsonHash=shift;
     return exists $jsonHash->{barcode}
            ? $jsonHash->{"run name"} ."_$jsonHash->{lane}_$jsonHash->{barcode}"
            : $jsonHash->{"run name"}."_$jsonHash->{lane}";

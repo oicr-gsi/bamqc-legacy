@@ -837,8 +837,8 @@ When a new mapping position is found, stats are generated on all stored position
 
 sub runningBaseCoverage{  
 	my ($stats,$chrom,$startpos)=@_;
-
-	my $cleared_positions=0;
+	
+    my $cleared_positions=0;
 	### will clear out all startpoints stored that precede the current chromosome and position
 	for my $chr (keys %{$$stats{runningBaseCoverage}}){
 		for my $pos (sort {$a<=>$b} keys %{ $$stats{runningBaseCoverage}{$chr} }){  ### check each start position
@@ -869,7 +869,7 @@ sub runningBaseCoverage{
 			
 			
 		}
-		delete $$stats{runningBaseCoverage}{$chr} if(!$chr || ($chr ne $chrom));  ### delete previous chromosome keys
+		delete $$stats{runningBaseCoverage}{$chr} if(!$chr || ((defined $chrom) and ($chr ne $chrom)));  ### delete previous chromosome keys
 	}
 	
 	return $cleared_positions;
