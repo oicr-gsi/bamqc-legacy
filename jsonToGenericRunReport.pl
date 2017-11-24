@@ -27,8 +27,6 @@ use Getopt::Std;
 use File::Basename;
 use vars qw/ %opt /;
 
-use lib dirname (__FILE__);
-
 use GSI::bamqc 'load_json_and_dirs';
 use GSI::report;
 

@@ -51,7 +51,6 @@ use vars qw/ %opt /;
 use File::Basename;
 
 
-use lib dirname (__FILE__);
 use GSI::bamqc;
 use GSI::report;
 
