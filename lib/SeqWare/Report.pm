@@ -17,6 +17,7 @@ sub new{
 
 
 use SeqWare::Html;
+use GSI::bamqc;
 
 sub commaFormat {
     my ($str) = @_;

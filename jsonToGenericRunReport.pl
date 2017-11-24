@@ -22,25 +22,25 @@ use strict;
 use warnings;
 
 
-use Cwd 'abs_path';
+use Cwd qw(abs_path getcwd);
 use Getopt::Std;
 use File::Basename;
 use vars qw/ %opt /;
 
 use GSI::bamqc 'load_json_and_dirs';
-use GSI::report;
-
+# use GSI::report;
+use GSI::RunReport;
 
 use Data::Dumper;
 
+
 my $scriptPath = dirname(abs_path($0));
 
-my $plot_names=GSI::report::get_possible_plot_names();
-
-my $table_headers = GSI::report::get_possible_headers();
+my $plot_names=GSI::RunReport::get_possible_plot_names();
+my $table_headers = GSI::RunReport::get_possible_headers();
 
 my %param=(
-	
+
 	#### ordered data_table_columns, modify to limit to specific columns
 	table_headers=>$table_headers,
 	table_columns=>{   #### will show all possible columns, removing those that need to be explicitly indicated
@@ -55,6 +55,7 @@ my %param=(
 	showLaneInfo 		=> 1,
 	printAllImages 		=> 0,
 	plotData 			=> 0,
+	noCollapse		=>0
 );
 
 
@@ -63,13 +64,14 @@ my %param=(
 
 
 #### process options
-my $opt_string = "crpgHh";
+my $opt_string = "crpgnHh";
 getopts ($opt_string, \%opt) or usage("Incorrect arguments.");
 usage("Help requested.") if (exists $opt{h});
 
 $param{showCoverageTable} = 1 if (exists $opt{c});
 $param{printAllImages} = 1 if (exists $opt{p});
 $param{plotData} = 1 if(exists $opt{g});
+$param{noCollapse} = 1 if(exists $opt{c});
 
 if(! exists $opt{r}){
 	### remove the read length histogram
@@ -102,39 +104,50 @@ map{
 	my $lane=$jsonHash{$_}{"lane"};
 	$runList{$run}{$lane}++;
 }keys %jsonHash;
-  
-my $date = `date`;
+
+my $date = `date`; #TODO(apmasell): do this without fork
 chomp $date;
-unless (-e "sorttable.js")
-{
-	`ln -s /u/lheisler/git/spb-analysis-tools/bamqc/sorttable.js`;
-}
+
+#unless (-e "sorttable.js")
+#{
+#	`ln -s /u/lheisler/git/spb-analysis-tools/bamqc/sorttable.js`;
+#}
 
 
+# my $html;
+# $html.="<html>\n<head>\n";
+# $html.="<script src=\"./sorttable.js\"></script>\n";
+# $html.="<style type=\"text/css\">\n.na { color: #ccc; }\nth, td {\n  padding: 3px !important;\n}\ntable\n{\nborder-collapse:collapse;\n}\n/* Sortable tables */\ntable.sortable thead {\n\tbackground-color:#eee;\n\tcolor:#000000;\n\tfont-weight: bold;\n\tcursor: default;\n}\n</style>\n";
+# $html.="</head>\n<body>\n";
+# $html.="<p>Generic run report generated on $date.</p>\n";
+
+GSI::RunReport::plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
+
+#used for tsv file
+my $filePath = getcwd();
 my $html;
-$html.="<html>\n<head>\n";
-$html.="<script src=\"./sorttable.js\"></script>\n";
-$html.="<style type=\"text/css\">\n.na { color: #ccc; }\nth, td {\n  padding: 3px !important;\n}\ntable\n{\nborder-collapse:collapse;\n}\n/* Sortable tables */\ntable.sortable thead {\n\tbackground-color:#eee;\n\tcolor:#000000;\n\tfont-weight: bold;\n\tcursor: default;\n}\n</style>\n";
-$html.="</head>\n<body>\n";
-$html.="<p>Generic run report generated on $date.</p>\n";
-
-GSI::report::plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
-
 for my $run (sort keys %runList)
 {
+	#header with name of run
+	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
+
+	#handle the tsv file
+	my $TSVfile = $filePath.'/'.$run.'_report.tsv';
+	# Link to TSV in html page
+	if ($TSVfile =~ /.*(\/archive\/.*\.tsv)/ ) {
+		$html .= "<a href=\"${1}\" download>${run}_report.tsv</a>\n";
+	}
+
 	### for this run, get a list of reports
 	### do NOT want to send the run list to each of the functions
-	
-	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
-	
 	my @sorted_lanes=sort{$jsonHash{$a}{lane}<=>$jsonHash{$b}{lane}} grep{$jsonHash{$_}{"run name"} eq $run} keys %jsonHash;
-	
-	$html.=GSI::report::data_table(\%param,\%jsonHash,\@sorted_lanes,$run);  ### parameters, jsonHash, jsonfiles - in order, id
-	$html.=GSI::report::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
-	$html.=GSI::report::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	);   ### set this as a parameter than can be turned off, on by default
-	$html.=GSI::report::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
+
+	$html.=GSI::RunReport::data_table(\%param,\%jsonHash,\@sorted_lanes,$run);  ### parameters, jsonHash, jsonfiles - in order, id
+	#$html.=GSI::report::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
+	#$html.=GSI::report::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	);   ### set this as a parameter than can be turned off, on by default
+	#$html.=GSI::report::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
 }
-$html.="</body>\n</html>\n";	
+$html.="</body>\n</html>\n";
 print $html;
 
 
@@ -144,16 +157,13 @@ exit;
 sub usage{
         print "\nUsage is jsonToGenericRunReport.pl [options] path/to/*.json\n";
         print "Options are as follows:\n";
-		print "\t -c show bases covered data.  Default is no bases covered.\n";
+				print "\t -c show bases covered data.  Default is no bases covered.\n";
         print "\t-r show read length histogram.  Default is no histogram.\n";
         print "\t-p print all images.  Default is to only show thumbnails (with links).\n";
         print "\t-g plot data.  Default it to not plot the data\n";
-		print "\t-H show hard clip stats and graph.  Default is off.\n";
+				print "\t-H show hard clip stats and graph.  Default is off.\n";
+				print "\t-n no collapse estimate!\n";
         print "\t-h displays this usage message.\n";
 
         die "\n@_\n\n";
 }
-
-
-
-
