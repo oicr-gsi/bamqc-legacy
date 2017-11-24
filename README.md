@@ -7,6 +7,37 @@ To install dependencies (requires cpanminus):
 
     cpanm --installdeps .
 
+To use the report generating scripts, you will also need to install the [gsi-website](https://github.com/oicr-gsi/gsi-website)  perl module, freely available from Github.
+
+    git clone git@github.com:oicr-gsi/gsi-website.git
+    cd gsi-website
+    perl Makefile.PL
+    make
+    make install
+
+## Installation
+
+To install this module:
+
+    perl Makefile.PL && make && make install && make test
+    
+To run tests alone:
+
+    make test
+    
+
+
+## Documentation
+
+For man pages, see [man/GSI__bamqc](man/GSI__bamqc) and [man/GSI__report](man/GSI__report).
+
+To generate this documentation:
+
+    pod2text lib/GSI/bamqc.pm > man/GSI__bamqc
+    pod2text lib/GSI/report.pm > man/GSI__report
+
+
+
 ## Bedtools histogram files
 
 The -H option in bamqc.pl expects a 'bedtools histogram file' for coverage. Here's how to generate this file:

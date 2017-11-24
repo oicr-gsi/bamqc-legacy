@@ -1,0 +1,320 @@
+NAME
+    bamqc - Generate quality control statistics from BAM files
+
+SYNOPSIS
+      use GSI::bamqc;
+
+DESCRIPTION
+USAGE
+BUGS
+SUPPORT
+AUTHOR
+    Genome Sequence Informatics Ontario Institute for Cancer Research
+    https://github.com/oicr-gsi
+
+COPYRIGHT
+    Copyright (C) 2017 The Ontario Institute for Cancer Research
+
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by the
+    Free Software Foundation; either version 3 of the License, or (at your
+    option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+    Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+SEE ALSO
+    perl(1).
+
+  assess_flag($flag,$stats,$qual,$qcut)
+    Assesses the sam flag and stores information in the reference hash
+
+    Returns : 1 if the read is mapped, 0 if not
+
+    Argument : $flag = the sam record flag; $stats = a reference to a hash,
+    which will be modified; $qual = the alignment quality; $param = the
+    parameter hash;
+
+    Comment : conditions assessed are as follows: 256="non primary reads";
+    4="unmapped read"; $qual < $qcut="qual fail reads"; if none of the
+    above="mapped reads"; 1="paired reads"; 8="mate unmaped reads" [sic];
+    2="properly paired reads"
+
+  assess_start_point($chrom,$s1,$s2,$sphash)
+    Keeps a running calculation of ReadsPerStartPoint, updating this value
+    with each read. It is dependent on the stream alignment data being
+    properly sorted
+
+    Returns : A revised StartPoint hash, with updated stats
+
+    Argument : $chrom = the chromosome of the current record; $s1 = the
+    position of the current record = the leftmost start point; $s2 = the
+    position of the paired record = the rightmost start point; $sphash = the
+    current StartPoint hash, holding the current position; and the running
+    ReadsPerStartPoint value;
+
+  read_bed($file)
+    Reads in a bed file, storing in the intervals in an array of hashes
+    indicating, Start/Stop and size
+
+    Returns : Hash structure containing the bed intervals
+
+    Argument : $file = the name of the bed file, containing the intervals
+
+  cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)
+    Processes the cigarString, by breaking into pieces and assessing how the
+    read is mapped to the reference
+
+    Returns : A list with two values, $readLength and $mappedBases
+
+    Argument : $chrom = the chromosome to which the current read maps;
+    $start1 = the leftmost startpoint; $start2 = the rightmost startpoint
+    for the paired end; $R = the read (R1,R2,R?); $strand = the strand to
+    which the read maps, from the sam flag; $cigar = the cigar string;
+    $stats = a reference to the stats hash, which will be modified; $p = a
+    reference to the parameter hash;
+
+  md_stats($R,$mdstring,$strand,$stats)
+    Processes the cigarString, by breaking into pieces and assessing how the
+    read is mapped to the reference
+
+    Returns : the number of mismatches defined by the MD string
+
+    Argument : $R = R1,R2,R?; $mdstring = the mismatch string, extracted
+    from the MD:Z tag in the sam record; $strand = to which strand does the
+    read map; $stats = reference to the stats hash, values will be modified;
+
+  onTarget($chrom,$start,$mapped,$stats)
+    Determines if the read overlaps to any degree intervals contained within
+    the bedfile record. The bedfile record is modified to indicated mapping
+    to this interval
+
+    Returns : 1 if mapped to Target, 0 if not
+
+    Argument : $chrom = the chromosome to which the read maps; $start = the
+    leftmost start position; $mapped = the number of bases mapped; $bed = a
+    reference to the bed hash; $stats = a reference to the stats hash
+    containing the bed intervals, which will be modified;
+
+  addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)
+    Adds fragments to the runningBaseCoverage collection. Each fragment is
+    added to all positions to which the read maps. This collection will be
+    continuously process and cleared of all positions that precede the
+    current read start
+
+    Returns : the number of positions to which the current fragment is
+    stored/mapped
+
+    Argument : $chrom = the chromosome to which the current read maps;
+    $start1 = the left-most start of the paired end reads; $start2 = the
+    right-most start of the paired end reads; $cigar = the cigar string;
+    $strand = the strand to which the read maps; $stats = a reference to the
+    stats hash;
+
+  runningBaseCoverage($stats,$chrom,$startpos)
+    Calculates base coverage as a running total. This requires that the
+    streaming records are from a sorted bam file. This will produce a hash
+    with chromosomal keys, each value being a hash of fragment positions and
+    counts, by parsing the cigar string for the current record. When a new
+    mapping position is found, stats are generated on all stored positions,
+    and then the hash is cleared
+
+    Returns : The number of cleared positions from the runningBaseCoverage
+    hash
+
+    Argument : $stats = a reference to the stats hash, holding the
+    runningBaseCoverage hash. Other keys in the stats hash will be modified;
+    $chrom = the current chromosome, all recorded positions not on this
+    chromosome will be processed and cleared. If no value, then the whole
+    hash is cleared; $pos = the current position, all recorded positions on
+    the current chromosome, before this position, will be cleared;
+
+  HistStats(%val)
+    Calculate the mean and standard deviation of insert sizes in a hash
+
+    Returns : mean and standard deviation of the insert sizes
+
+    Argument : %val = a hash, with keys = insert size, values = count for
+    each insert size
+
+  insertMapping($tlen,$rnext,$hash,$p)
+    Identifies the paired-end insert size as being within the normal range,
+    abnormally far, or on different chromosomes
+
+    Returns : A description of the insert mapping (normlInsertSize/
+    pairsMappedAbnormallyFar/ pairsMappedToDifferentChr). Modifies the
+    reference hash
+
+    Argument : $tlen = template length; $rnext = the chromosome of the other
+    in the pair, = indicates the same; $hash = reference to a hash
+    collecting statistics; $p = parameter hash;
+
+  load_json(@files)
+    Open, decode, and store each JSON file in a hash with filename keys
+
+    Returns : a hash with filename keys > decoded JSON hash
+
+    Argument : @files = a list of json file paths
+
+  load_json_and_dirs(@files)
+    Open, decode, and store each JSON file in a hash with filename keys
+
+    Returns : two hashes: a hash with filename keys > decoded JSON hash; and
+    a hash with filename keys > directory
+
+    Argument : @files = a list of file paths to open
+
+  toPhred($char)
+    Convert a character to a phred score (ascii value - 33)
+
+    Returns : Phred score
+
+    Argument : $char = the single character to convert
+
+  generate_jsonHash($stats,$p)
+    Transforms information in the stats hash to the appropriate keys and
+    values for the jsonHash
+
+    Returns : The jsonHash, ready to print
+
+    Argument : $stats = reference to the stats hash, where data is stored;
+    $p = reference to the parameters hash;
+
+  generate_error_rate( $hash, $prefix )
+    Compute the error rate with (mismatch+insertion+deletion)/aligned
+
+    Returns : A formatted percentage
+
+    Argument : $hash = The hash containing the JSON file contents to
+    analyse; $prefix = A prefix to use when accessing the keys of hash;
+
+  generate_mismatch_rate( $hash, $prefix )
+    Compute the mismatch rate with mismatch/aligned
+
+    Returns : A formatted percentage
+
+    Argument : $hash = The hash containing the JSON file contents to
+    analyse; $prefix = A prefix to use when accessing the keys of hash;
+
+  generate_indel_rate( $hash, $prefix )
+    Compute the indel rate with (insertion+deletion)/aligned
+
+    Returns : A formatted percentage
+
+    Argument : $hash = The hash containing the JSON file contents to
+    analyse; $prefix = A prefix to use when accessing the keys of hash;
+
+  generate_softclip_rate( $hash, $prefix )
+    Compute the softclip rate with soft clip/(soft clip + aligned)
+
+    Returns : A formatted percentage
+
+    Argument : $hash = The hash containing the JSON file contents to
+    analyse; $prefix = A prefix to use when accessing the keys of hash;
+
+  generate_hardclip_rate( $hash, $prefix )
+    Compute the hardclip rate with hard clip/(hard clip + soft clip +
+    aligned)
+
+    Returns : A formatted percentage
+
+    Argument : $hash = The hash containing the JSON file contents to
+    analyse; $prefix = A prefix to use when accessing the keys of hash;
+
+  get_barcode( $jsonHash)
+    Get the sequencing index / barcode
+
+    Returns : the barcode if it exists; otherwise 'NoIndex'
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_group( $jsonHash)
+    Get the group id and group id description
+
+    Returns : the group id and group id description separated by a space, if
+    they exist. If they don't exist, then 'na'
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_raw_reads( $jsonHash)
+    Get the total raw reads, counted by summing mapped, unmapped and qual
+    fail reads
+
+    Returns : the total number of reads (int)
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_raw_yield( $jsonHash)
+    Get the total raw yield, multipying get_raw_reads by the average read
+    length
+
+    Returns : the total yield (int)
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_map_percent( $jsonHash)
+    Get the total map percentage, calculated by dividing mapped reads by
+    total number of reads and multiplying by 100. If total reads is 0, treat
+    as 1.
+
+    Returns : the map percentage as an integer
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_ontarget_percent( $jsonHash)
+    Get the total on target percentage by dividing reads on target by the
+    number of mapped reads, and multiplying by 100. If mapped reads is 0,
+    treat as 1.
+
+    Returns : the on target percentage as an integer
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_est_yield( $jsonHash)
+    Get the estimated total yield by multiplying total aligned based by the
+    on target percentage, and dividing that by reads per start point. If
+    reads per start point is is 0, treat as 1.
+
+    Returns : the estimated yield as an integer
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  get_est_coverage( $jsonHash)
+    Get the estimated total coverage by dividing estimated yield by the
+    target size. If the target is is 0, treat as 1.
+
+    Returns : the estimated coverage as an integer
+
+    Argument : $jsonHash = The hash containing the JSON file contents to
+    analyse.
+
+  findStart($cigarOp, $start)
+    Find the start index of the read using the cigar string
+
+    Returns : the new start position, adjusted to take soft clipping into
+    account
+
+    Argument : $cigarOp = the cigar string
+
+  findEnd($cigarOp, $end)
+    Find the start index of the read using the cigar string
+
+    Returns : the new start position, adjusted to take soft clipping into
+    account
+
+    Argument : $cigarOp = the cigar string; $end = the assumed end of the
+    string;
+

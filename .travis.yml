@@ -1,7 +1,10 @@
 dist: trusty
 language: perl
 perl: 
-    - "5.20"
+    - "5.24"
+
+git:
+  depth: 3 
 
 addons:
   apt:
@@ -9,8 +12,15 @@ addons:
     - samtools
     - r-base
 
-script: perl test.pl
+before_install:
+    - git clone https://github.com/oicr-gsi/gsi-website.git 
+    - cd gsi-website && perl Makefile.PL && make && make install
+    - cd -
 
+script: 
+    - perl Makefile.PL && make
+    - make test
+    - make install
 
 after_failure:
     - echo "#######################FULL OUTPUT###########################"

@@ -51,9 +51,8 @@ use vars qw/ %opt /;
 use File::Basename;
 
 
-use lib dirname (__FILE__);
-use bamqc;
-
+use GSI::bamqc;
+use GSI::report;
 
 
 use JSON::PP; # imports encode_json, decode_json, to_json and from_json
@@ -74,7 +73,7 @@ my %p=validate_opts(%opt);
 usage("Missing Input stream.  This script must receive input from samtools view") if ( -t STDIN and not @ARGV );
 
 ### load the bed file, store in the parameter hash
-$p{bed}=read_bed($p{bedFile}) if($p{bedFile});
+$p{bed}=GSI::bamqc::read_bed($p{bedFile}) if($p{bedFile});
 if($p{bed}=~/ERROR/){
 	print usage($p{bed});
 }
@@ -153,12 +152,12 @@ while (<STDIN>){   ### need to check that STDIN exists, and run usage if it does
 	my ($flag,$chrom,$start1,$qual,$cigarstring,$chrom2,$start2,$template_length,$qualString)=@f[1,2,3,4,5,6,7,8,10];
 	
 	#### assess the flags
-	my $mapped=assess_flag($flag,\%stats,$qual,$p{qualCut});
+	my $mapped=GSI::bamqc::assess_flag($flag,\%stats,$qual,$p{qualCut});
 	### do not proceed with this record, unless mapped
 	next unless($mapped);   
 	
 	###  assess the start point of the mapped read,using the %startPoint hash which tracks this information
-	$stats{startPoint} = assess_start_point($chrom,$start1,$start2,$stats{startPoint});
+	$stats{startPoint} = GSI::bamqc::assess_start_point($chrom,$start1,$start2,$stats{startPoint});
 	
 	### the remaining statistics are only collected on the sample data
 	$timeToSampleCount++;
@@ -174,30 +173,30 @@ while (<STDIN>){   ### need to check that STDIN exists, and run usage if it does
 	my $mappedstrand=$flag & 16 ? "-" : "+";
 	my $R=($flag & 64) ? "R1" : ($flag & 128) ? "R2" : "R?"; 
 	$qualString=reverse($qualString) if($mappedstrand eq "-");
-	my ($readLength,$mapped_bases)=cigar_stats($chrom,$start1,$start2,$R,$mappedstrand,$cigarstring,\%stats,\%p);   ### get cigar stats for this string
+	my ($readLength,$mapped_bases)=GSI::bamqc::cigar_stats($chrom,$start1,$start2,$R,$mappedstrand,$cigarstring,\%stats,\%p);   ### get cigar stats for this string
 	
 	#### mismatch statistics
 	if($_=~ /MD:Z:(.*?)\t/ ){
-		my $mmcount=md_stats($R,$1,$mappedstrand,\%stats);
+		my $mmcount=GSI::bamqc::md_stats($R,$1,$mappedstrand,\%stats);
 	}else{
 		$stats{readsMissingMDtags}++;
 	}
 	
     ### is the read onTarget 
-	my $onTarget=onTarget($chrom,$start1,$mapped_bases,\%stats);
+	my $onTarget=GSI::bamqc::onTarget($chrom,$start1,$mapped_bases,\%stats);
 	$stats{"reads on target"}++ if($onTarget);
 
 	#### RUNNING BASE COVERAGE
 	if( $onTarget && $p{reportBasesCovered} ) {
-		my $added= addRunningBaseCoverage($chrom,$start1,$start2,$cigarstring,$mappedstrand,\%stats) ;
-		my $cleared = runningBaseCoverage(\%stats,$chrom,$start1);
+		my $added= GSI::bamqc::addRunningBaseCoverage($chrom,$start1,$start2,$cigarstring,$mappedstrand,\%stats) ;
+		my $cleared = GSI::bamqc::runningBaseCoverage(\%stats,$chrom,$start1);
 	}
 	
     ### READ LENGTH HISTOGRAM	
 	$stats{readLengthHist}{$R}{$readLength}++;
 
 	### INSERT MAPPING DETAILS
-	my $class=insertMapping($template_length,$chrom2,\%stats,\%p) if($template_length>=0);  ## ignore negative templates = 2nd in pair
+	my $class=GSI::bamqc::insertMapping($template_length,$chrom2,\%stats,\%p) if($template_length>=0);  ## ignore negative templates = 2nd in pair
 	
 	## QUALITY,BY CYCLE hash
 	my @qual=split //,$qualString;
@@ -249,7 +248,7 @@ for my $R(qw/R1 R2 R?/){
 if($stats{ends} eq "paired end"){
 	### stats on the Insert Sizes  
 	#($stats{meanInsert},$stats{stdevInsert})=$stats{normalInsertSizes} ? HistStats($stats{normalInsertSizes}) : (0,0);
-	($stats{meanInsert},$stats{stdevInsert})=HistStats($stats{normalInsertSizes});
+	($stats{meanInsert},$stats{stdevInsert})=GSI::bamqc::HistStats($stats{normalInsertSizes});
 	
 	### min and max insert sizes
 	my @insertSizes=sort{$a<=>$b} keys %{$stats{normalInsertSizes}};
@@ -286,7 +285,7 @@ for my $R(qw/R1 R2 R?/){
 		my ($qSum,$qCount)=(0,0);
 		#for my $q(keys %{$stats{qualByCycle}{$R}}){
 		for my $q(@{$p{sortedChars}}){
-			my $qscore=toPhred($q);
+			my $qscore=GSI::bamqc::toPhred($q);
 			
 			
 			if(my $count=$stats{qualByCycle}{$R}{$q}{$cyc}){
@@ -322,7 +321,7 @@ $stats{averageReadLength}{overall}=(sprintf "%.6f", $stats{averageReadLength}{ov
 
 
 ### clear out remaining runningBaseCoverage
-my $cleared = runningBaseCoverage(\%stats);
+my $cleared = GSI::bamqc::runningBaseCoverage(\%stats);
 
 
 
@@ -369,7 +368,7 @@ $stats{"reads on target"} *= $p{sampleRate};
 
 ############  generate the jsonHash from sspecivicadd stats fields to the jsonHash, that will be encoded and printed out
 
-my %jsonHash=generate_jsonHash(\%stats,\%p);
+my %jsonHash=GSI::bamqc::generate_jsonHash(\%stats,\%p);
 
 
 ### for debug
@@ -415,7 +414,7 @@ sub validate_opts{
 			$param{jsonHash}=decode_json($opt{'j'});   	 ### appears to be the json hash passed directly
 				
 		}else{
-			warn "file containing json formatted string $opt{j} not found";
+            usage("file containing json formatted string $opt{j} not found");
 		}	
 	}
 	

@@ -27,71 +27,27 @@ use Getopt::Std;
 use File::Basename;
 use vars qw/ %opt /;
 
-use lib dirname (__FILE__);
-use bamqc;
+use GSI::bamqc 'load_json_and_dirs';
+use GSI::report;
 
 
 use Data::Dumper;
 
 my $scriptPath = dirname(abs_path($0));
 
-my %table_headers=(
-	data=>{
-		lane		=>	"Lane",
-		barcode		=>	"Barcode",
-		groupid		=>	"Group ID",
-		ext_name	=>	"External Name",
-		library		=>	"Library",
-		insert_mean	=>	"Insert Mean (SD)",
-		read_length	=>	"Read Length",
-		raw_reads	=>	"Raw Reads",
-		raw_yield	=>	"Raw Yield",
-		mapped		=>	"Map %",
-		error		=>	"Error %",
-		softclip	=>	"Soft Clip %",
-		hardclip	=>  "Hard Clip %",
-		rpsp		=>	"Reads/SP",
-		ontarget	=>	"% on Target",
-		yield		=>	"Estimated Yield*",
-		coverage	=>	"Coverage*"
-	},
-	graph=>{
-		lane		=>	"Lane",
-		barcode		=>	"Barcode",
-		library		=>	"Library",
-		read_breakdown	=> "Read Breakdown",
-		insert_distr	=> "Insert Distribution",
-		qual_hist	=> "Quality Histogram",
-		qual_by_cycle	=> "Quality by Cycle",
-		mismatch_by_cycle	=> "Mismatch by Cycle",
-		indel_by_cycle	=> "Indels by Cycle",
-		softclip_by_cycle	=> "Soft Clip by Cycle"
-	}
-);
+my $plot_names=GSI::report::get_possible_plot_names();
 
-my %plot_names=(
-	read_breakdown		=>"readPie.png",
-	insert_distr		=>"insert.png",
-	read_length			=>"readLength.png",
-	qual_hist	 		=>"qualHist.png",
-	qual_by_cycle 		=>"qualCycle.png",
-	mismatch_by_cycle 	=> "misCycle.png",
-	indel_by_cycle		=>	"indelCycle.png", 
-	softclip_by_cycle	=>	"softCycle.png",
-	hardclip_by_cycle	=>	"hardCycle.png"
-);
-
-
+my $table_headers = GSI::report::get_possible_headers();
 
 my %param=(
 	
 	#### ordered data_table_columns, modify to limit to specific columns
-	table_headers=>\%table_headers,
+	table_headers=>$table_headers,
 	table_columns=>{   #### will show all possible columns, removing those that need to be explicitly indicated
-		data	=> [qw/lane barcode groupid ext_name library insert_mean read_length raw_reads raw_yield mapped error softclip hardclip rpsp ontarget yield coverage/],
+		data	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget yield coverage/],
 		graph	=> [qw/lane barcode library read_breakdown insert_distr qual_hist qual_by_cycle mismatch_by_cycle indel_by_cycle softclip_by_cycle hardclip_by_cycle/],
 	},
-	plotnames=>\%plot_names,
+	plotnames=>$plot_names,
 	coverageXs => [qw(1 4 8 15 30 50 100 200)],
 	showDataTable 		=> 1,
 	showGraphTable 		=> 1,
@@ -132,7 +88,7 @@ if(! exists $opt{H}){
 
 #### get list of files
 my @jsonFiles = @ARGV;
-my ($json_ref, $json_dir_ref)=load_json_and_dirs(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
+my ($json_ref, $json_dir_ref)=GSI::bamqc::load_json_and_dirs(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
 my %jsonHash = %{ $json_ref };
 
 
@@ -161,21 +117,22 @@ $html.="<script src=\"./sorttable.js\"></script>\n";
 $html.="<style type=\"text/css\">\n.na { color: #ccc; }\nth, td {\n  padding: 3px !important;\n}\ntable\n{\nborder-collapse:collapse;\n}\n/* Sortable tables */\ntable.sortable thead {\n\tbackground-color:#eee;\n\tcolor:#000000;\n\tfont-weight: bold;\n\tcursor: default;\n}\n</style>\n";
 $html.="</head>\n<body>\n";
 $html.="<p>Generic run report generated on $date.</p>\n";
+
+GSI::report::plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
+
 for my $run (sort keys %runList)
 {
 	### for this run, get a list of reports
 	### do NOT want to send the run list to each of the functions
 	
-	
-	my $plotted=plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
 	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
 	
-	my @json=sort{$jsonHash{$a}{lane}<=>$jsonHash{$b}{lane}} grep{$jsonHash{$_}{"run name"} eq $run} keys %jsonHash;
+	my @sorted_lanes=sort{$jsonHash{$a}{lane}<=>$jsonHash{$b}{lane}} grep{$jsonHash{$_}{"run name"} eq $run} keys %jsonHash;
 	
-	$html.=data_table(\%param,\%jsonHash,\@json,$run);  ### parameters, jsonHash, jsonfiles - in order, id
-	$html.=coverage_table(\%param,\%jsonHash,\@json,$run) 	if($param{showCoverageTable}	);
-	$html.=graph_table(\%param,\%jsonHash,\@json,$run) 		if($param{showGraphTable}	);   ### set this as a parameter than can be turned off, on by default
-	$html.=lane_info(\%param,\%jsonHash,\@json,$run) 		if($param{showLaneInfo}		);
+	$html.=GSI::report::data_table(\%param,\%jsonHash,\@sorted_lanes,$run);  ### parameters, jsonHash, jsonfiles - in order, id
+	$html.=GSI::report::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
+	$html.=GSI::report::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	);   ### set this as a parameter than can be turned off, on by default
+	$html.=GSI::report::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
 }
 $html.="</body>\n</html>\n";	
 print $html;

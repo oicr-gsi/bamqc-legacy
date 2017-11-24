@@ -4,3 +4,4 @@ on 'test' => sub {
     requires 'Text::Diff';
     requires 'File::Slurp';
 };
+
