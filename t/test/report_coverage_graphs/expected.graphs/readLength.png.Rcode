@@ -1,7 +1,7 @@
 xvals <- c(101, 101, 101)
 yvals <- c(40010, 80020, 80020)
 cols <- c("forestgreen", "forestgreen", "forestgreen")
-png(filename = "test/report_coverage_graphs/test.json.graphs/readLength.png", width = 640, height = 640)
+png(filename = "t/test/report_coverage_graphs/test.json.graphs/readLength.png", width = 640, height = 640)
 plot(xvals, yvals, main="Simulated_Run Lane: 1 Barcode: NoIndex\nSimulated_5X_chr21 Read Length Histogram", type="n", col="black", xlab="Read Length (bp)", ylab="Number of reads")
 for(i in 1:(length(yvals)-1))
 {
