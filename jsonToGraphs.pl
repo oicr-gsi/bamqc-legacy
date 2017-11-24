@@ -30,13 +30,13 @@ use JSON::PP;
 #### this can be changes should the library already exist in @INC
 use File::Basename;
 use lib dirname (__FILE__);
-use jsonToGraphs;
+use GSI::jsonToGraphs;
 
 ### currently on argument, the path to the json file
 # add usage and ability to select subset of graphs
 # add ability to change location of output directory
 
-my $jsonFile = $ARGV[0];		
+my $jsonFile = $ARGV[0];
 my $plot_dir="${jsonFile}.graphs";
 
 my %jsonHash;
@@ -86,18 +86,18 @@ if($jsonHash{"library"} eq "merged"){
 
 ## dispatch table, with named references to each subroutine
 my %subs=(
-	readmap_piechart 			=> \&readmap_piechart,
-	quality_histogram 			=> \&quality_histogram,
-	collapsed_base_coverage 	=> \&collapsed_base_coverage,
-	noncollapsed_base_coverage 	=> \&noncollapsed_base_coverage,
-	readlength_histogram 		=> \&readlength_histogram,
-	insert_graph 				=> \&insert_graph,
-	quality_by_cycle 			=> \&quality_by_cycle,
-	mismatch_by_cycle 			=> \&mismatch_by_cycle,
-	indel_by_cycle 				=> \&indel_by_cycle,
-	softclip_by_cycle 			=> \&softclip_by_cycle,
-	hardclip_by_cycle 			=> \&hardclip_by_cycle,
-	coverage_by_depth			=> \&coverage_by_depth,
+	readmap_piechart 			=> \&GSI::jsonToGraphs::readmap_piechart,
+	quality_histogram 			=> \&GSI::jsonToGraphs::quality_histogram,
+	collapsed_base_coverage 	=> \&GSI::jsonToGraphs::collapsed_base_coverage,
+	noncollapsed_base_coverage 	=> \&GSI::jsonToGraphs::noncollapsed_base_coverage,
+	readlength_histogram 		=> \&GSI::jsonToGraphs::readlength_histogram,
+	insert_graph 				=> \&GSI::jsonToGraphs::insert_graph,
+	quality_by_cycle 			=> \&GSI::jsonToGraphs::quality_by_cycle,
+	mismatch_by_cycle 			=> \&GSI::jsonToGraphs::mismatch_by_cycle,
+	indel_by_cycle 				=> \&GSI::jsonToGraphs::indel_by_cycle,
+	softclip_by_cycle 			=> \&GSI::jsonToGraphs::softclip_by_cycle,
+	hardclip_by_cycle 			=> \&GSI::jsonToGraphs::hardclip_by_cycle,
+	coverage_by_depth			=> \&GSI::jsonToGraphs::coverage_by_depth,
 );
 
 ### list of subroutines to call
@@ -106,24 +106,14 @@ my %subs=(
 my @plots=qw/readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
 				readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
 				indel_by_cycle softclip_by_cycle hardclip_by_cycle/;
-				
-#my @plots=qw/coverage_by_depth/;
 
+#my @plots=qw/coverage_by_depth/;
 
 
 for my $plot(@plots){
 	### each sub is called with 4 arguments, references to the jsonHash, param Hash, the directory to place plots and the plot title
 	my $rv=&{$subs{$plot}}(\%jsonHash,\%param,$plot_dir,$title);
-	
+
 	### indicate failed plots
 	print STDERR "$jsonFile : no plot generated for $plot\n" unless($rv);
 }
-
-
-
-
-
-
-
-
-

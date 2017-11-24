@@ -15,6 +15,27 @@ To use the report generating scripts, you will also need to install the [gsi-web
     make
     make install
 
+## Installation
+
+To install this module:
+
+    perl Makefile.PL && make && make install && make test
+    
+To run tests alone:
+
+    make test
+    
+
+
+## Documentation
+
+For man pages, see [man/GSI__bamqc](man/GSI__bamqc) and [man/GSI__report](man/GSI__report).
+
+To generate this documentation:
+
+    pod2text lib/GSI/bamqc.pm > man/GSI__bamqc
+    pod2text lib/GSI/report.pm > man/GSI__report
+
 
 
 ## Bedtools histogram files

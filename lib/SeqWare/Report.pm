@@ -1,9 +1,21 @@
 package SeqWare::Report;
-use parent 'Exporter';
-our @EXPORT_OK = qw();
-
 use strict;
 use warnings;
+
+BEGIN {
+    use Exporter ();
+    use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+		@ISA		=	qw(Exporter);
+    @EXPORT_OK   = qw();
+}
+
+sub new{
+    my ($class, %parameters) = @_;
+    my $self = bless ({}, ref ($class) || $class);
+    return $self;
+}
+
+
 use SeqWare::Html;
 
 sub commaFormat {

@@ -1,0 +1,11 @@
+MANIFEST
+README
+LICENSE
+Todo
+Changes
+Makefile.PL
+lib/GSI/bamqc.pm
+lib/GSI/report.pm
+lib/GSI/jsonToGraphs.pm
+lib/SeqWare/Report.pm
+t/001_load.t

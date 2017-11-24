@@ -1,4 +1,4 @@
-package jsonToGraphs;
+package GSI::jsonToGraphs;
 #Original Script : Rob Denroche
 #Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>
 #Last modified : 2015-01-07
@@ -21,24 +21,31 @@ package jsonToGraphs;
 
 use strict;
 use warnings;
-use Exporter;
+
+BEGIN {
+    use Exporter ();
+    use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+
+		$VERSION	=	1.00;
+		@ISA		=	qw(Exporter);
+		@EXPORT_OK	=	qw(readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
+							readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
+							indel_by_cycle softclip_by_cycle hardclip_by_cycle coverage_by_depth);
+}
+
+sub new{
+    my ($class, %parameters) = @_;
+    my $self = bless ({}, ref ($class) || $class);
+    return $self;
+}
+
+
 use Data::Dumper;
-
-
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
-$VERSION	=	1.00;
-@ISA		=	qw(Exporter);
-@EXPORT		=	qw(readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
-					readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
-					indel_by_cycle softclip_by_cycle hardclip_by_cycle coverage_by_depth);
-
-
 
 #### coverage by depth chart, requires that the json has contains coverage information
 sub coverage_by_depth{
 	my($jHash,$p,$path,$title)=@_;
-	
+
 	#print STDERR Dumper(keys %$jHash);
 	#<STDIN>;
 	#print STDERR Dumper($$jHash{"collapsed bases covered"});
@@ -61,7 +68,7 @@ sub readmap_piechart{
 	$pieChart{colours}= [$$p{colours}{good},$$p{colours}{mid},$$p{colours}{other}[0],$$p{colours}{bad}];
 	pieGraph($path, "readPie.png", $pieChart{values}, $pieChart{labels}, $pieChart{colours}, "$title Read Breakdown");
 	return 1;
-	
+
 }
 
 ##### barChart, quality histogram
@@ -94,21 +101,21 @@ sub quality_histogram{
 ##### barChart, non-collapsed bases covered
 sub noncollapsed_base_coverage{
 	my ($jHash,$p,$path,$title)=@_;
-	my %barChart=(values=>[],labels=>[],colours=>[]);   
+	my %barChart=(values=>[],labels=>[],colours=>[]);
 	my $targetSize = $$jHash{"target size"};
 	if (defined $$jHash{"non collapsed bases covered"})
 	{
 		my %histHash = %{ $$jHash{"non collapsed bases covered"} };
-		
-	
-		
+
+
+
 		if ((scalar keys %histHash) > 0)
 		{
 			for (my $i = 1; $i <= $$p{basecoverage}{displaymax}; $i++)
 			{
 				#my $percentCovered=exists $histHash{$i} ? ($histHash{$i} / $targetSize) * 100 : 0;
 				my $percentCovered=$histHash{$i} ? $histHash{$i} :   0;
-				
+
 				push(@{$barChart{values}},$percentCovered);
 				push(@{$barChart{labels}},"\"${i}x\"");
 				my $colourCode=$percentCovered < $$p{basecoverage}{low} ? "bad" : $percentCovered<$$p{basecoverage}{high} ? "mid" : "good";
@@ -126,22 +133,22 @@ sub noncollapsed_base_coverage{
 sub collapsed_base_coverage{
 	my ($jHash,$p,$path,$title)=@_;
 	my $targetSize = $$jHash{"target size"};
-	my (@values,@labels,@colours);  
+	my (@values,@labels,@colours);
 	if (defined $$jHash{"collapsed bases covered"})
 	{
 		my %histHash = %{ $$jHash{"collapsed bases covered"} };
-		
+
 		if ((scalar keys %histHash) > 0)
 		{
 			for (my $i = 1; $i <= $$p{basecoverage}{displaymax}; $i++)
 			{
 				#my $percentCovered=exists $histHash{$i} ? ($histHash{$i} / $targetSize) * 100 : 0;
 				my $percentCovered=$histHash{$i} ? $histHash{$i}  :   0;
-				
+
 				push(@values, $percentCovered);
 				push(@labels, "\"${i}x\"");
-				
-				my $colour_code=$percentCovered < $$p{basecoverage}{low} ? "bad" : 
+
+				my $colour_code=$percentCovered < $$p{basecoverage}{low} ? "bad" :
 								$percentCovered < $$p{basecoverage}{high} ? "mid" :
 								"good";
 				push (@colours, $$p{colours}{$colour_code});
@@ -190,14 +197,14 @@ sub insert_graph{
 	my @colours = ();
 	my $insertMean =  $$jHash{"insert mean"};
 	my %lineHash = %{ $$jHash{"insert histogram"} };
-				
+
 	for my $i (sort {$a <=> $b} keys %lineHash)
 	{
 		if ($i < $$p{insertMax})
 		{
 			push(@lineX, $i);
 			push(@lineY, $lineHash{$i});
-			my $insertStep=$$p{insertStep};	
+			my $insertStep=$$p{insertStep};
 			my $colour_key = (  ($i < ($insertMean - (2 * $insertStep))) or ($i > ($insertMean + (2 * $insertStep))) ) ? "bad" :
 							 (  ($i < ($insertMean - (1 * $insertStep))) or ($i > ($insertMean + (1 * $insertStep))) ) ? "mid" :
 								  "good";
@@ -248,7 +255,7 @@ sub quality_by_cycle{
 								$qual < $$p{qualcut}{high} ? "mid" :
 								"good";
 				push (@colours, $$p{colours}{$colour_key});
-				
+
 			}
 		}
 		if ($r eq "read 1")   ### do this after goingthrough the quality by cycle for read 1.  introduces a gap
@@ -274,7 +281,7 @@ sub mismatch_by_cycle{
 		$alignedHash{$r}  = \%{ $$jHash{"$r aligned by cycle"} };
 		$insertHash{$r}   = \%{ $$jHash{"$r insertion by cycle"} };
 		$softClipHash{$r} = \%{ $$jHash{"$r soft clip by cycle"} };
-		
+
 		if ((scalar keys %{ $$jHash{"$r mismatch by cycle"} }) > 0)
 		{
 			my %errorHash = %{ $$jHash{"$r mismatch by cycle"} };
@@ -379,7 +386,7 @@ sub softclip_by_cycle{
 	my ($jHash,$p,$path,$title)=@_;
 	my(@lineX,@lineY,@colours);
 	my $read1max = 0;
-	
+
 	my(%alignedHash,%insertHash,%softClipHash);
 	for my $r (@{$$p{reads}})
 	{
@@ -490,7 +497,7 @@ sub hardclip_by_cycle{
 
 
 
-###### 
+######
 ###  GENERIC plotting scripts, called by the SPECIFIC plots
 
 
@@ -547,7 +554,7 @@ sub lineGraph{
 	my $xlab = $_[6];
 	my $ylab = $_[7];
 	my $additionalParams = $_[8];
-	
+
 	open (RFILE, ">${path}/${name}.Rcode") or die "Couldn't open ${path}/${name}.Rcode.\n";
 
 	print RFILE "xvals <- c($xVal[0]";
@@ -593,7 +600,7 @@ sub barGraph{
 	my $xlab = $_[6];
 	my $ylab = $_[7];
 	my $additionalParams = $_[8];
-	
+
 	open (RFILE, ">${path}/${name}.Rcode") or die "Couldn't open ${path}/${name}.Rcode.\n";
 
 	print RFILE "values <- c($values[0]";
@@ -624,3 +631,5 @@ sub barGraph{
 	close RFILE;
 	`Rscript ${path}/${name}.Rcode`;
 }
+
+1;
