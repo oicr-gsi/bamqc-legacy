@@ -414,7 +414,7 @@ sub validate_opts{
 			$param{jsonHash}=decode_json($opt{'j'});   	 ### appears to be the json hash passed directly
 				
 		}else{
-			warn "file containing json formatted string $opt{j} not found";
+            usage("file containing json formatted string $opt{j} not found");
 		}	
 	}
 	

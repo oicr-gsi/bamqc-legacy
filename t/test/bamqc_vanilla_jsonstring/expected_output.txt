@@ -1,4 +1,3 @@
-file containing json formatted string {sample:Simulated_5X_chr21,library:Simulated_5X_chr21,barcode:NoIndex,instrument:NEAT-genReads,run not found at bamqc.pl line 418.
 Only sampling every 2000 reads.
 Loaded 2085 targets.
 

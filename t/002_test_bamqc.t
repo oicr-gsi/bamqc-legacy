@@ -53,10 +53,11 @@ sub run_bamqc {
 
 my $metadata_file='t/test/metadata.json';
 my $metadata_str=read_file($metadata_file);
+chomp $metadata_str;
 
 run_bamqc("-s 2000 -i 1500 -q 30 -j $metadata_file ","t/test/bamqc_vanilla");
 
-run_bamqc("-s 2000 -i 1500 -q 30 -j \"$metadata_str\" ","t/test/bamqc_vanilla_jsonstring"); 
+run_bamqc("-s 2000 -i 1500 -q 30 -j '$metadata_str' ","t/test/bamqc_vanilla_jsonstring"); 
 
 run_bamqc("-c -i 1500 -q 30 -j $metadata_file","t/test/bamqc_coverage");
 
