@@ -22,12 +22,12 @@ use strict;
 use warnings;
 
 
-use Cwd qw(abs_path getcwd);
+use Cwd qw(abs_path);
 use Getopt::Std;
 use File::Basename;
 use vars qw/ %opt /;
 
-use GSI::bamqc 'load_json_and_dirs';
+use GSI::bamqc 'load_json';
 # use GSI::report;
 use GSI::RunReport;
 
@@ -46,6 +46,7 @@ my %param=(
 	table_columns=>{   #### will show all possible columns, removing those that need to be explicitly indicated
 		data	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget yield coverage/],
 		graph	=> [qw/lane barcode library read_breakdown insert_distr qual_hist qual_by_cycle mismatch_by_cycle indel_by_cycle softclip_by_cycle hardclip_by_cycle/],
+		tsv	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget yield coverage target_size num_targets target_file/]
 	},
 	plotnames=>$plot_names,
 	coverageXs => [qw(1 4 8 15 30 50 100 200)],
@@ -85,13 +86,10 @@ if(! exists $opt{H}){
 }
 
 
-
-
-
 #### get list of files
 my @jsonFiles = @ARGV;
-my ($json_ref, $json_dir_ref)=GSI::bamqc::load_json_and_dirs(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
-my %jsonHash = %{ $json_ref };
+my %jsonHash=GSI::bamqc::load_json(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
+#my %jsonHash = %{ $json_ref };
 
 
 
@@ -121,38 +119,44 @@ chomp $date;
 # $html.="</head>\n<body>\n";
 # $html.="<p>Generic run report generated on $date.</p>\n";
 
-GSI::RunReport::plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
+GSI::RunReport::plot_data(\%jsonHash,$scriptPath) if($param{plotData});
 
 #used for tsv file
-my $filePath = getcwd();
+
 my $html;
 for my $run (sort keys %runList)
 {
 	#header with name of run
 	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
 
-	#handle the tsv file
-	my $TSVfile = $filePath.'/'.$run.'_report.tsv';
-	# Link to TSV in html page
-	if ($TSVfile =~ /.*(\/archive\/.*\.tsv)/ ) {
-		$html .= "<a href=\"${1}\" download>${run}_report.tsv</a>\n";
-	}
-
 	### for this run, get a list of reports
 	### do NOT want to send the run list to each of the functions
 	my @sorted_lanes=sort{$jsonHash{$a}{lane}<=>$jsonHash{$b}{lane}} grep{$jsonHash{$_}{"run name"} eq $run} keys %jsonHash;
 
+	$html.=GSI::RunReport::write_tsv(\%param,\%jsonHash,\@sorted_lanes,$run);
 	$html.=GSI::RunReport::data_table(\%param,\%jsonHash,\@sorted_lanes,$run);  ### parameters, jsonHash, jsonfiles - in order, id
-	#$html.=GSI::report::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
-	#$html.=GSI::report::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	);   ### set this as a parameter than can be turned off, on by default
-	#$html.=GSI::report::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
+	$html.=GSI::RunReport::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
+	$html.=GSI::RunReport::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	&& $param{plotData} );   ### set this as a parameter than can be turned off, on by default
+	$html.=GSI::RunReport::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
+
 }
-$html.="</body>\n</html>\n";
-print $html;
+
+
+
+my $page = SeqWare::Html::document( "$date Generic Run Report",
+    SeqWare::Html::NAV_PROJECTS, "../../../web/seqwareBrowser", $html, get_custom_head());
+print $page;
 
 
 exit;
 
+sub get_custom_head {
+	use File::Slurp;
+	my $htmlHead="<style type=\"text/css\">\n";
+	$htmlHead.= read_file($scriptPath."/css/runreport.css");
+	$htmlHead.="</style>\n";
+	return $htmlHead;
+}
 
 sub usage{
         print "\nUsage is jsonToGenericRunReport.pl [options] path/to/*.json\n";

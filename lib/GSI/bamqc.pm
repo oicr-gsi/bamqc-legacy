@@ -11,7 +11,7 @@ BEGIN {
 		#@EXPORT	=	qw();
     @EXPORT_OK   = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
 							onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-							load_json load_json_and_dirs toPhred generate_jsonHash
+							load_json toPhred generate_jsonHash
               generate_mismatch_rate generate_indel_rate generate_softclip_rate
               generate_hardclip_rate generate_error_rate get_barcode get_group
               get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
@@ -603,51 +603,20 @@ Argument  :	@files = a list of json file paths
 
 =cut
 sub load_json{
-
-	my @files=@_;
-	my %json_hash;
-	for my $file (@files){
-		print STDERR "reading from $file\n";
-		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
-		if (my $line = <$FILE>){
-			$json_hash{basename($file)} = decode_json($line);
-            $json_hash{basename($file)}{basename}=basename($file);
-            $json_hash{basename($file)}{dirname}=dirname($file);
-		}else{
-			warn "No data found in $file!\n";
-		}
-	}
-	return %json_hash;
-}
-
-=head2 load_json_and_dirs(@files)
-
-Open, decode, and store each JSON file in a hash with filename keys
-
-Returns   : two hashes: a hash with filename keys > decoded JSON hash; and
-												a hash with filename keys > directory
-
-Argument  :	@files = a list of file paths to open
-
-=cut
-sub load_json_and_dirs{
-
-	my @files=@_;
-	my %json_hash;
-  my %dir_hash;
-	for my $file (@files){
-		print STDERR "reading from $file\n";
-		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
-		if (my $line = <$FILE>){
-			$json_hash{basename($file)} = decode_json($line);
-            $json_hash{basename($file)}{basename}=basename($file);
-            $json_hash{basename($file)}{dirname}=dirname($file);
-            $dir_hash{basename($file)} = dirname($file);
-		}else{
-			warn "No data found in $file!\n";
-		}
-	}
-	return (\%json_hash, \%dir_hash);
+  	my @files=@_;
+  	my %json_hash;
+  	for my $file (@files){
+  		print STDERR "reading from $file\n";
+  		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
+  		if (my $line = <$FILE>){
+  			$json_hash{basename($file)} = decode_json($line);
+              $json_hash{basename($file)}{basename}=basename($file);
+              $json_hash{basename($file)}{dirname}=dirname($file);
+  		}else{
+  			warn "No data found in $file!\n";
+  		}
+  	}
+  	return %json_hash;
 }
 
 =head2 toPhred($char)
