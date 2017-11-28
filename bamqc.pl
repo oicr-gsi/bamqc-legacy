@@ -52,7 +52,6 @@ use File::Basename;
 
 
 use GSI::bamqc;
-use GSI::report;
 
 
 use JSON::PP; # imports encode_json, decode_json, to_json and from_json
