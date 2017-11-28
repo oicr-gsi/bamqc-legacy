@@ -41,8 +41,8 @@ sub run_genericrunreport {
         unlink $actual_html, $actual_tsv;
     }
 
-    if ($run_opts =~ m/-g/) {
-        my $has_cov=($run_opts =~ m/-c/);
+    if ($run_opts =~ m/g/) {
+        my $has_cov=($run_opts =~ m/c/);
         test_genericrunreport_graphs($output_dir,$has_cov);
     }
 
@@ -96,13 +96,15 @@ sub test_image_rcode {
 
 run_genericrunreport("","t/test/report_vanilla");
 
-run_genericrunreport("-r -g -p -H","t/test/report_most_opts");
+run_genericrunreport("-r -g -p -H -n","t/test/report_most_opts");
 
 run_genericrunreport("-c","t/test/report_coverage");
 
-run_genericrunreport("-g","t/test/report_coverage_graphs");
+run_genericrunreport("-c -g","t/test/report_coverage_graphs");
 
 # runs on a json file that has coverage stats
 run_genericrunreport("-g","t/test/report_histo_coverage");
+
+run_genericrunreport("-cgn","t/test/report_nocollapse");
 
 done_testing();

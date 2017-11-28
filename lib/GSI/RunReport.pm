@@ -1,6 +1,7 @@
 package GSI::RunReport;
 use strict;
 use warnings;
+use SeqWare::Html;
 
 BEGIN {
     use Exporter ();
@@ -11,8 +12,72 @@ BEGIN {
                         data_table coverage_table graph_table lane_info write_tsv);
 }
 
+sub new{
+    my ($class, %parameters) = @_;
+    my $self = bless ({}, ref ($class) || $class);
+    return $self;
+}
+
+#################### main pod documentation begin ###################
+
+
+=head1 NAME
+
+RunReport - Use the JSON produced by GSI::bamqc to generate an HTML page
+
+=head1 SYNOPSIS
+
+  use GSI::RunReport;
+
+
+=head1 DESCRIPTION
+
+
+=head1 USAGE
+
+use SeqWare::Html;
+
+=head1 BUGS
+
+=head1 SUPPORT
+
+=head1 AUTHOR
+
+Genome Sequence Informatics
+Ontario Institute for Cancer Research
+https://github.com/oicr-gsi
+
+=head1 COPYRIGHT
+
+Copyright (C) 2017 The Ontario Institute for Cancer Research
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+MA 02110-1301, USA.
+
+=head1 SEE ALSO
+
+perl(1).
+
+=cut
+
+#################### main pod documentation end ###################
+
+
 my $NA="<a class='na'>na</a>";
 
+# Mapping the short names to the header titles. See get_possible_headers
 my %table_headers=(
 	data=>{
 		lane		=>	"Lane",
@@ -39,7 +104,10 @@ my %table_headers=(
 		rpsp		=>	"Reads/SP",
 		ontarget	=>	"% Mapped on Target",
 		yield		=>	"Estimated Yield*",
-		coverage	=>	"Coverage*"
+    collapsed_yield		=>	"Estimated Yield*",
+		coverage	=>	"Coverage*",
+    collapsed_coverage	=>	"Coverage*"
+
 	},
   tsv=>{
     lane		=>	"Lane",
@@ -65,8 +133,10 @@ my %table_headers=(
     hardclip2    => "R2 Hard Clip Percent",
     rpsp		=>	"Reads/SP",
     ontarget	=>	"Percent Mapped on Target",
-    yield		=>	"Estimated Yield",
-    coverage	=>	"Coverage",
+    yield		=>	"Estimated Yield (uncollapsed)",
+    collapsed_yield		=>	"Estimated Yield (collapsed)",
+    coverage	=>	"Coverage (uncollapsed)",
+    collapsed_coverage	=>	"Coverage (collapsed)",
     target_size => "Target Size (bp)",
     num_targets => "Number of Targets",
     target_file => "Target File"
@@ -82,21 +152,6 @@ my %table_headers=(
 		mismatch_by_cycle	=> "Mismatch by Cycle",
 		indel_by_cycle	=> "Indels by Cycle",
 		softclip_by_cycle	=> "Soft Clip by Cycle"
-	},
-	merge=>{
-		sample		=>	"Sample",
-		lanes		=>	"# Lanes",
-		last_mod	=>	"Last Modified",
-		avg_read_length	=>	"Avg Read Length",
-		error_pc		=>	"Error %",
-		soft_clip_pc	=>	"Soft Clip %",
-		reads_on_target_pc	=>	"% Reads on Target",
-		reads_on_target		=>	"# Reads on Target",
-		bases_on_target		=>	"# Bases on Target",
-		coverage	=>	"Coverage",
-		coverage8x	=>	"% at 8x",
-		coverage90	=>	"90% covered at",
-		coverageGraph	=>	"Graph",
 	}
 );
 my %plot_names=(
@@ -113,15 +168,43 @@ my %plot_names=(
 
 ###########################################
 
+=head2 get_possible_headers()
 
+  Returns the headers that the RunReport supports, mapped to their human-friendly
+  name. The keys in this hash are used by the various reporting methods to create
+  their tables. In order to get tables to print different sets of headers
+  change the parameter passed in: p{table_columns}{data|graph|tsv}.
+
+  Returns: a hash mapping shortnames to human-friendly names for the table header
+
+=cut
 sub get_possible_headers {
     return \%table_headers;
 }
 
+=head2 get_possible_plot_names()
+
+  Returns the image short names that the RunReport supports, mapped to their
+  actual PNG filename. The keys in this hash are used by the various reporting
+  methods to create their tables. In order to get tables to print different sets of headers
+  change the parameter passed in: p{plotnames}.
+
+  Returns: a hash mapping shortnames to plot filenames for the table header
+
+=cut
 sub get_possible_plot_names {
     return \%plot_names;
 }
 
+=head2 plot_data($jsonHash,$scriptPath)
+
+  Creates the graphs for the report using jsonToGraphs.pl in the same directory
+  as each JSON file.
+
+  Arguments: $jsonHash = The hash containing the JSON file contents to analyse;
+             $scriptPath = the directory where jsonToGraphs.pl is located.
+
+=cut
 sub plot_data{
 	my ($jsonHash,$scriptPath)=@_;
 	for my $report (keys %$jsonHash){
@@ -134,11 +217,24 @@ sub plot_data{
 	}
 }
 
-use SeqWare::Html;
+=head2 data_table($p,$jsonHash,$sorted_lane_list,$run)
 
+  Returns the HTML for the main metrics table.
+
+  Arguments: $p=parameters used for the data_table. Required keys:
+                $p->{table_columns}{data}-the ordered array of shortname for the header
+                $p->{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the main metrics table.
+
+  See: get_possible_headers
+
+=cut
 sub data_table{
 	my($p,$jsonHash,$sorted_lane_list,$run)=@_;
-	# my $html="<table border=\"1\" class=\"sortable\">\n";
   my @cols=@{$p->{table_columns}{data}};
 
   #header
@@ -159,9 +255,8 @@ sub data_table{
   map{ $stats{$_}=~ s/(^[-+]?\d+?(?=(?>(?:\d{3})+)(?!\d))|\G\d{3}(?=\d))/$1,/g; } qw/RawYield Reads EstYield/;
   my %hash;
 	map{$hash{$_}=""} @cols;
-  @hash{($cols[0],"raw_reads","raw_yield","yield")}=("Total",$stats{Reads},$stats{RawYield},$stats{EstYield});
+  @hash{($cols[0],"raw_reads","raw_yield",($p->{noCollapse} ? 'yield' : 'collapsed_yield'))}=("Total",$stats{Reads},$stats{RawYield},$stats{EstYield});
   my @footer=@hash{@cols};
-
 
   #shove it together
   my $html=SeqWare::Html::table($header, \@footer, @rows);
@@ -170,7 +265,7 @@ sub data_table{
 	my $qualCut = join(", ",sort{$b<=>$a} keys %{$stats{qualCuts}});
 	$html .= SeqWare::Html::p("* Estimates exclude unmapped, off target, non-primary or ",
            "MAPQ < $qualCut reads ",
-           $p->{noCollapse} ? "" : "and use reads per start point to approximate loss due to collapse"
+           $p->{noCollapse} ? "(uncollapsed)" : "and use reads per start point to approximate loss due to collapse"
            );
 
 	return $html;
@@ -187,7 +282,9 @@ sub data_row{
 
   ### these are cummulative totals, need to be added and returne....
   # as part of parameters?  or caputred
-  my %stats=(RawYield=>$rowHash->{raw_yield},Reads=>$rowHash->{raw_reads},EstYield=>$rowHash->{yield});
+  my %stats=( RawYield=>$rowHash->{raw_yield},
+              Reads=>$rowHash->{raw_reads},
+              EstYield=>($p->{noCollapse} ? $rowHash->{yield} : $rowHash->{collapsed_yield}));
 
   format_na($rowHash);
   format_big_numbers($rowHash);
@@ -201,6 +298,21 @@ sub data_row{
 
 }
 
+
+=head2 coverage_table($p,$jsonHash,$sorted_lane_list,$run)
+
+  Returns the HTML for the coverage table.
+
+  Arguments: $p=parameters used for the coverage_table. Required keys:
+                $p->{coverageXs}-an array with the N X values to report for coverage
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the coverage table.
+
+
+=cut
 sub coverage_table{
 
 	my($p,$jsonHash,$sorted_lane_list,$run)=@_;
@@ -232,10 +344,6 @@ sub coverage_table{
         format_big_numbers($rowHash);
         add_hrefs($rowHash);
         my @row=@{$rowHash}{@cols};
-        # $html.="<tr>\n";
-        # foreach my $col (@cols){
-        #     $html.="<td>$rowHash->{$col}</td>";
-        # }
 		    for my $collapsed ("non collapsed", "collapsed"){
 			       for my $i (@covX){
 				           my $basesCovered = exists $jsonHash->{$report}{"$collapsed bases covered"}{$i}
@@ -252,6 +360,22 @@ sub coverage_table{
 
 }
 
+=head2 graph_table($p,$jsonHash,$sorted_lane_list,$run)
+
+  Returns the HTML for the graph table. Note that this does not do the graphing.
+  plot_data must be called to generate graphs.
+
+  Arguments: $p=parameters used for the graph_table. Required keys:
+                  $p->{table_columns}{graph}-the ordered array of shortname for the header
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the graph table.
+
+  See: plot_data, get_possible_headers
+
+=cut
 sub graph_table{
 	my($p,$jsonHash,$sorted_lane_list,$run)=@_;
 
@@ -275,6 +399,23 @@ sub graph_table{
   return SeqWare::Html::table($header, undef, @rows);
 }
 
+
+=head2 lane_info($p,$jsonHash,$sorted_lane_list,$run)
+
+  Returns the HTML for the target block.
+
+  Arguments: $p=parameters used for the graph_table. Required keys:
+                  $p->{table_columns}{graph}-the ordered array of shortname for the graph table header
+                  $p->{printAllImages}-whether or not to print all of the images in large
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the lane block.
+
+  See: get_possible_headers
+
+=cut
 sub lane_info{
 	my($p,$jsonHash,$sorted_lane_list,$run)=@_;
 	my @html_lines;
@@ -314,11 +455,21 @@ sub lane_info{
 	return $html;
 }
 
-=head2 write_tsv
+=head2 write_tsv($p,$jsonHash,$sorted_lane_list,$run)
 
-  Writes a TSV with all "data_table" metrics plus the informationg from
+  Writes a TSV with all "data_table" metrics plus the information from
   "lane_info". Arbitrarily picks the last JSON file's directory to write the
   TSV into.
+
+  Arguments: $p=parameters used for the data_table. Required keys:
+                $p->{table_columns}{tsv}-the ordered array of shortname for the header
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML pointing to the TSV file
+
+  See: get_possible_headers
 
 =cut
 sub write_tsv{
@@ -353,19 +504,23 @@ sub write_tsv{
     return $html;
 }
 
-#################################Useful junk
+#################################Useful methods
 
+# Finds the string 'na' and formats it with an HTML class
+#if anything is na, grey it out
 sub format_na {
     my $rowHash=shift;
-    #if anything is na, grey it out
     map { $rowHash->{$_}=$NA if ($rowHash->{$_} eq 'na') } keys %$rowHash;
     return $rowHash;
 }
+
+#format floats from specific headers to have two decimal places
 sub format_2decimals {
     my $rowHash=shift;
-    #format floats to have two decimal places
-    my @printf_cols = ('mapped', 'softclip1', 'softclip2', 'hardclip1', 'hardclip2', 'mismatch1', 'mismatch2',
-                       'error1', 'error2', 'rpsp', 'ontarget', 'coverage', 'insert_mean', 'ins_stddev', 'indel1', 'indel2');
+    my @printf_cols = ('mapped', 'softclip1', 'softclip2', 'hardclip1', 'hardclip2',
+                        'mismatch1', 'mismatch2','error1', 'error2', 'rpsp',
+                        'ontarget', 'coverage', 'collapsed_coverage', 'insert_mean',
+                        'ins_stddev', 'indel1', 'indel2');
     foreach my $col (@printf_cols) {
        $rowHash->{$col}=sprintf ("%.2f", $rowHash->{$col})
           if (($rowHash->{$col} ne $NA) || ($rowHash->{$col} ne 'na')) ;
@@ -373,22 +528,25 @@ sub format_2decimals {
     return $rowHash;
 }
 
+#add commas to big numbers in specific headers
 sub format_big_numbers {
     my $rowHash=shift;
-    #add commas to big numbers
-    my @format_number_cols = ('raw_reads', 'raw_yield', 'yield','target_size','num_targets');
+    my @format_number_cols = ('raw_reads', 'raw_yield', 'yield', 'collapsed_yield',
+                              'target_size','num_targets');
     foreach (@format_number_cols) {
        $rowHash->{$_}=format_number($rowHash->{$_});
     }
     return $rowHash;
 }
 
+#formats other big numbers
 sub format_number{
 	my ($n)=@_;
 	$n=~s/(^[-+]?\d+?(?=(?>(?:\d{3})+)(?!\d))|\G\d{3}(?=\d))/$1,/g;
 	return $n;
 }
 
+#add hyperlinks for run name, barcode, lane to go to the lane info table
 sub add_hrefs {
     my $rowHash=shift;
     ### add hyperlinks to the required cells
@@ -403,6 +561,7 @@ sub add_hrefs {
     return $rowHash;
 }
 
+#add a <td></td> tag to everything in a list
 sub add_td_tags {
     my $rowHash=shift;
     #add table tags
@@ -410,6 +569,8 @@ sub add_td_tags {
     return $rowHash;
 }
 
+#for all of the plots in %plot_names, iterate through a hash and format any
+#matching string to be a thumbnail image.
 sub make_thumbnail {
     my $rowHash=shift;
     map {
@@ -419,6 +580,9 @@ sub make_thumbnail {
 }
 
 
+# map all of the possible shortnames to their actual data. We regenerate this any
+# time we need this information, and then filter based on the specific header of
+# interest.
 sub get_all_fields {
     my ($jsonHash) =@_;
 
@@ -451,8 +615,10 @@ sub get_all_fields {
 
     $row{rpsp}=$jsonHash->{"reads per start point"};
     $row{ontarget}=GSI::bamqc::get_ontarget_percent($jsonHash);
-    $row{yield}=GSI::bamqc::get_est_yield($jsonHash);
-    $row{coverage}=GSI::bamqc::get_est_coverage($jsonHash);
+    $row{yield}=GSI::bamqc::get_est_yield($jsonHash, 0);
+    $row{coverage}=GSI::bamqc::get_est_coverage($jsonHash, 0);
+    $row{collapsed_yield}=GSI::bamqc::get_est_yield($jsonHash, 1);
+    $row{collapsed_coverage}=GSI::bamqc::get_est_coverage($jsonHash, 1);
     $row{insert_mean}=$jsonHash->{"insert mean"} if $jsonHash->{"number of ends"} eq "paired end";
     $row{ins_stddev}=$jsonHash->{"insert stdev"} if $jsonHash->{"number of ends"} eq "paired end";
 

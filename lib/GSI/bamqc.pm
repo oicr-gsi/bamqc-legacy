@@ -843,7 +843,7 @@ Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 =cut
 sub get_raw_yield {
     my ($jsonHash)=@_;
-    return int(GSI::bamqc::get_raw_reads($jsonHash) * $jsonHash->{"average read length"});
+    return int(get_raw_reads($jsonHash) * $jsonHash->{"average read length"});
 }
 
 =head2 get_map_percent( $jsonHash)
@@ -859,7 +859,7 @@ Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 =cut
 sub get_map_percent {
     my ($jsonHash)=@_;
-    return 100 * ($jsonHash->{"mapped reads"} / ( GSI::bamqc::get_raw_reads($jsonHash) || 1 ));
+    return 100 * ($jsonHash->{"mapped reads"} / (get_raw_reads($jsonHash) || 1 ));
 }
 
 =head2 get_ontarget_percent( $jsonHash)
@@ -886,14 +886,17 @@ Get the estimated total yield by multiplying total aligned based by
 
 Returns   : the estimated yield as an integer
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+Argument  :	$collapse = whether to use reads per start point to collapse down the coverage;
+            $jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
 sub get_est_yield {
-    my ($jsonHash)=@_;
-    return int($jsonHash->{"aligned bases"} *
-            (GSI::bamqc::get_ontarget_percent($jsonHash) / 100) /
-            ($jsonHash->{"reads per start point"} || 1) );
+    my ($jsonHash, $collapse)=@_;
+    my $denom=1;
+    if ($collapse) {
+        $denom=($jsonHash->{"reads per start point"} || 1);
+    }
+    return int($jsonHash->{"aligned bases"} *(get_ontarget_percent($jsonHash) / 100) / $denom);
 }
 
 =head2 get_est_coverage( $jsonHash)
@@ -904,16 +907,17 @@ Get the estimated total coverage by dividing estimated yield by
 
 Returns   : the estimated coverage as an integer
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+Argument  :	$collapse = whether to use reads per start point to collapse down the coverage;
+            $jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
 sub get_est_coverage {
-    my ($jsonHash)=@_;
-    return GSI::bamqc::get_est_yield($jsonHash) / ($jsonHash->{"target size"} || 1);
+    my ($jsonHash,$collapse)=@_;
+    return get_est_yield($jsonHash, $collapse) / ($jsonHash->{"target size"} || 1);
 }
 
 ##################### INTERNAL Subroutines ##############################
-
+##get_est_yield
 ## INTERNAL procCigar()
 ## Arguments:
 ## 		$cigar : the cigar string

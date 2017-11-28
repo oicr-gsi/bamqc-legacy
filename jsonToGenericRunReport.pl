@@ -44,9 +44,9 @@ my %param=(
 	#### ordered data_table_columns, modify to limit to specific columns
 	table_headers=>$table_headers,
 	table_columns=>{   #### will show all possible columns, removing those that need to be explicitly indicated
-		data	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget yield coverage/],
+		data	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget collapsed_yield collapsed_coverage/],
 		graph	=> [qw/lane barcode library read_breakdown insert_distr qual_hist qual_by_cycle mismatch_by_cycle indel_by_cycle softclip_by_cycle hardclip_by_cycle/],
-		tsv	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget yield coverage target_size num_targets target_file/]
+		tsv	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget collapsed_yield collapsed_coverage target_size num_targets target_file/]
 	},
 	plotnames=>$plot_names,
 	coverageXs => [qw(1 4 8 15 30 50 100 200)],
@@ -72,7 +72,16 @@ usage("Help requested.") if (exists $opt{h});
 $param{showCoverageTable} = 1 if (exists $opt{c});
 $param{printAllImages} = 1 if (exists $opt{p});
 $param{plotData} = 1 if(exists $opt{g});
-$param{noCollapse} = 1 if(exists $opt{c});
+
+if (exists $opt{n}) {
+	$param{noCollapse} = 1;
+	#replace the collapsed value with the uncollapsed value
+	foreach my $table (keys %{$param{table_columns}}) {
+			my @cols=@{$param{table_columns}{$table}};
+			s/collapsed_// for @cols;
+			$param{table_columns}{$table}=\@cols;
+	}
+}
 
 if(! exists $opt{r}){
 	### remove the read length histogram
