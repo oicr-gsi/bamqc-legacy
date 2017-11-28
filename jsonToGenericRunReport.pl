@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 #Original Script : Rob Denroche
-#Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>
-#Last modified : 2015-01-07
+#Modifications : Genome Sequence Informatics https://github.com/oicr-gsi
 # Copyright (C) 2017 The Ontario Institute for Cancer Research
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,9 +17,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301, USA.
+
 use strict;
 use warnings;
-
 
 use Cwd qw(abs_path);
 use Getopt::Std;
@@ -28,7 +27,6 @@ use File::Basename;
 use vars qw/ %opt /;
 
 use GSI::bamqc 'load_json';
-# use GSI::report;
 use GSI::RunReport;
 
 use Data::Dumper;
@@ -98,12 +96,8 @@ if(! exists $opt{H}){
 #### get list of files
 my @jsonFiles = @ARGV;
 my %jsonHash=GSI::bamqc::load_json(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
-#my %jsonHash = %{ $json_ref };
 
 
-
-### map to get runList
-#print STDERR Dumper(keys %{$jsonHash{"runlevel.jsonReport/SWID_1252183_CPCG_0329_Pr_P_PE_656_WG_141007_SN203_0253_AC5NM1ACXX_NoIndex_L008_R1_001.annotated.bam.BamQC.json"}});exit;
 
 my %runList;  ### contains a list of runs and lanes within the run
 map{
@@ -115,18 +109,6 @@ map{
 my $date = `date`; #TODO(apmasell): do this without fork
 chomp $date;
 
-#unless (-e "sorttable.js")
-#{
-#	`ln -s /u/lheisler/git/spb-analysis-tools/bamqc/sorttable.js`;
-#}
-
-
-# my $html;
-# $html.="<html>\n<head>\n";
-# $html.="<script src=\"./sorttable.js\"></script>\n";
-# $html.="<style type=\"text/css\">\n.na { color: #ccc; }\nth, td {\n  padding: 3px !important;\n}\ntable\n{\nborder-collapse:collapse;\n}\n/* Sortable tables */\ntable.sortable thead {\n\tbackground-color:#eee;\n\tcolor:#000000;\n\tfont-weight: bold;\n\tcursor: default;\n}\n</style>\n";
-# $html.="</head>\n<body>\n";
-# $html.="<p>Generic run report generated on $date.</p>\n";
 
 GSI::RunReport::plot_data(\%jsonHash,$scriptPath) if($param{plotData});
 

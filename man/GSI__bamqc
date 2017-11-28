@@ -162,14 +162,6 @@ SEE ALSO
 
     Argument : @files = a list of json file paths
 
-  load_json_and_dirs(@files)
-    Open, decode, and store each JSON file in a hash with filename keys
-
-    Returns : two hashes: a hash with filename keys > decoded JSON hash; and
-    a hash with filename keys > directory
-
-    Argument : @files = a list of file paths to open
-
   toPhred($char)
     Convert a character to a phred score (ascii value - 33)
 
@@ -289,8 +281,9 @@ SEE ALSO
 
     Returns : the estimated yield as an integer
 
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
+    Argument : $collapse = whether to use reads per start point to collapse
+    down the coverage; $jsonHash = The hash containing the JSON file
+    contents to analyse.
 
   get_est_coverage( $jsonHash)
     Get the estimated total coverage by dividing estimated yield by the
@@ -298,8 +291,9 @@ SEE ALSO
 
     Returns : the estimated coverage as an integer
 
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
+    Argument : $collapse = whether to use reads per start point to collapse
+    down the coverage; $jsonHash = The hash containing the JSON file
+    contents to analyse.
 
   findStart($cigarOp, $start)
     Find the start index of the read using the cigar string

@@ -29,13 +29,12 @@ To run tests alone:
 
 ## Documentation
 
-For man pages, see [man/GSI__bamqc](man/GSI__bamqc) and [man/GSI__report](man/GSI__report).
+For man pages, see [man/GSI__bamqc](man/GSI__bamqc) and [man/GSI__RunReport](man/GSI__RunReport).
 
 To generate this documentation:
 
     pod2text lib/GSI/bamqc.pm > man/GSI__bamqc
-    pod2text lib/GSI/report.pm > man/GSI__report
-
+    pod2text lib/GSI/RunReport.pm > man/GSI__RunReport
 
 
 ## Bedtools histogram files
