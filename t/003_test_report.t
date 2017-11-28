@@ -22,7 +22,7 @@ sub run_genericrunreport {
     my $expected_tsv="$output_dir/expected_report.tsv";
     my $json_dir=dirname($actual_html);
 
-    my $reporttest="perl jsonToGenericRunReport.pl $run_opts $test_json | grep -v 'Generic Run Report' | grep -v 'SeqWare Browser generated ' | perl -p -e 's#$json_dir/##g' > $actual_html";
+    my $reporttest="perl jsonToGenericRunReport.pl $run_opts $test_json | grep -v 'Generic Run Report' | grep -v 'SeqWare Browser generated ' | grep -v '<!-- Executed as:' | perl -p -e 's#$json_dir/##g' > $actual_html";
     print "########## Running report in $output_dir with options $run_opts\n#\t$reporttest\n";
 
     is ( system($reporttest), 0, "jsonToGenericRunReport.pl test with opts: '$run_opts' returns 0 exit status");
