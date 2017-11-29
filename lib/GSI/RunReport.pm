@@ -9,7 +9,8 @@ BEGIN {
 
 		@ISA		=	qw(Exporter);
 		@EXPORT_OK		=	qw(get_possible_plot_names get_possible_headers plot_data
-                        data_table coverage_table graph_table lane_info write_tsv);
+                        data_table coverage_table graph_table lane_info write_tsv
+                        assemble_run_report);
 }
 
 sub new{
@@ -502,6 +503,26 @@ sub write_tsv{
     close TSV;
     my $html = "<a href=\"$tsv_file\" download>${run}_report.tsv</a>\n";
     return $html;
+}
+
+sub assemble_run_report {
+    my($html)=@_;
+    my $date = `date`; #TODO(apmasell): do this without fork
+    chomp $date;
+    return SeqWare::Html::document( "$date Generic Run Report",
+      SeqWare::Html::NAV_PROJECTS, "../../../web/seqwareBrowser", $html, get_custom_head());
+
+}
+
+sub get_custom_head {
+  use Cwd qw(abs_path);
+  use File::Basename qw(dirname);
+  my $scriptPath = dirname(abs_path(__FILE__));
+	use File::Slurp;
+	my $htmlHead="<style type=\"text/css\">\n";
+	$htmlHead.= read_file($scriptPath."/css/runreport.css");
+	$htmlHead.="</style>\n";
+	return $htmlHead;
 }
 
 #################################Useful methods

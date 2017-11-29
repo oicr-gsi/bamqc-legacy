@@ -106,9 +106,6 @@ map{
 	$runList{$run}{$lane}++;
 }keys %jsonHash;
 
-my $date = `date`; #TODO(apmasell): do this without fork
-chomp $date;
-
 
 GSI::RunReport::plot_data(\%jsonHash,$scriptPath) if($param{plotData});
 
@@ -132,22 +129,11 @@ for my $run (sort keys %runList)
 
 }
 
-
-
-my $page = SeqWare::Html::document( "$date Generic Run Report",
-    SeqWare::Html::NAV_PROJECTS, "../../../web/seqwareBrowser", $html, get_custom_head());
+my $page = GSI::RunReport::assemble_run_report($html);
 print $page;
 
 
 exit;
-
-sub get_custom_head {
-	use File::Slurp;
-	my $htmlHead="<style type=\"text/css\">\n";
-	$htmlHead.= read_file($scriptPath."/css/runreport.css");
-	$htmlHead.="</style>\n";
-	return $htmlHead;
-}
 
 sub usage{
         print "\nUsage is jsonToGenericRunReport.pl [options] path/to/*.json\n";
