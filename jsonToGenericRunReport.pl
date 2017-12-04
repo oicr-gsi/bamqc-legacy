@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 #Original Script : Rob Denroche
-#Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>
-#Last modified : 2015-01-07
+#Modifications : Genome Sequence Informatics https://github.com/oicr-gsi
 # Copyright (C) 2017 The Ontario Institute for Cancer Research
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,34 +17,34 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301, USA.
+
 use strict;
 use warnings;
 
-
-use Cwd 'abs_path';
+use Cwd qw(abs_path);
 use Getopt::Std;
 use File::Basename;
 use vars qw/ %opt /;
 
-use GSI::bamqc 'load_json_and_dirs';
-use GSI::report;
-
+use GSI::bamqc 'load_json';
+use GSI::RunReport;
 
 use Data::Dumper;
 
+
 my $scriptPath = dirname(abs_path($0));
 
-my $plot_names=GSI::report::get_possible_plot_names();
-
-my $table_headers = GSI::report::get_possible_headers();
+my $plot_names=GSI::RunReport::get_possible_plot_names();
+my $table_headers = GSI::RunReport::get_possible_headers();
 
 my %param=(
-	
+
 	#### ordered data_table_columns, modify to limit to specific columns
 	table_headers=>$table_headers,
 	table_columns=>{   #### will show all possible columns, removing those that need to be explicitly indicated
-		data	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget yield coverage/],
+		data	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget collapsed_yield collapsed_coverage/],
 		graph	=> [qw/lane barcode library read_breakdown insert_distr qual_hist qual_by_cycle mismatch_by_cycle indel_by_cycle softclip_by_cycle hardclip_by_cycle/],
+		tsv	=> [qw/lane barcode groupid ext_name library insert_mean ins_stddev read_length raw_reads raw_yield mapped mismatch1 mismatch2 indel1 indel2 softclip1 softclip2 rpsp ontarget collapsed_yield collapsed_coverage target_size num_targets target_file/]
 	},
 	plotnames=>$plot_names,
 	coverageXs => [qw(1 4 8 15 30 50 100 200)],
@@ -55,6 +54,7 @@ my %param=(
 	showLaneInfo 		=> 1,
 	printAllImages 		=> 0,
 	plotData 			=> 0,
+	noCollapse		=>0
 );
 
 
@@ -63,13 +63,23 @@ my %param=(
 
 
 #### process options
-my $opt_string = "crpgHh";
+my $opt_string = "crpgnHh";
 getopts ($opt_string, \%opt) or usage("Incorrect arguments.");
 usage("Help requested.") if (exists $opt{h});
 
 $param{showCoverageTable} = 1 if (exists $opt{c});
 $param{printAllImages} = 1 if (exists $opt{p});
 $param{plotData} = 1 if(exists $opt{g});
+
+if (exists $opt{n}) {
+	$param{noCollapse} = 1;
+	#replace the collapsed value with the uncollapsed value
+	foreach my $table (keys %{$param{table_columns}}) {
+			my @cols=@{$param{table_columns}{$table}};
+			s/collapsed_// for @cols;
+			$param{table_columns}{$table}=\@cols;
+	}
+}
 
 if(! exists $opt{r}){
 	### remove the read length histogram
@@ -83,18 +93,11 @@ if(! exists $opt{H}){
 }
 
 
-
-
-
 #### get list of files
 my @jsonFiles = @ARGV;
-my ($json_ref, $json_dir_ref)=GSI::bamqc::load_json_and_dirs(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
-my %jsonHash = %{ $json_ref };
+my %jsonHash=GSI::bamqc::load_json(@jsonFiles); #### contains decoded json data. Hash keys are filename, values are json hashes
 
 
-
-### map to get runList
-#print STDERR Dumper(keys %{$jsonHash{"runlevel.jsonReport/SWID_1252183_CPCG_0329_Pr_P_PE_656_WG_141007_SN203_0253_AC5NM1ACXX_NoIndex_L008_R1_001.annotated.bam.BamQC.json"}});exit;
 
 my %runList;  ### contains a list of runs and lanes within the run
 map{
@@ -102,58 +105,46 @@ map{
 	my $lane=$jsonHash{$_}{"lane"};
 	$runList{$run}{$lane}++;
 }keys %jsonHash;
-  
-my $date = `date`;
-chomp $date;
-unless (-e "sorttable.js")
-{
-	`ln -s /u/lheisler/git/spb-analysis-tools/bamqc/sorttable.js`;
-}
 
+
+GSI::RunReport::plot_data(\%jsonHash,$scriptPath) if($param{plotData});
+
+#used for tsv file
 
 my $html;
-$html.="<html>\n<head>\n";
-$html.="<script src=\"./sorttable.js\"></script>\n";
-$html.="<style type=\"text/css\">\n.na { color: #ccc; }\nth, td {\n  padding: 3px !important;\n}\ntable\n{\nborder-collapse:collapse;\n}\n/* Sortable tables */\ntable.sortable thead {\n\tbackground-color:#eee;\n\tcolor:#000000;\n\tfont-weight: bold;\n\tcursor: default;\n}\n</style>\n";
-$html.="</head>\n<body>\n";
-$html.="<p>Generic run report generated on $date.</p>\n";
-
-GSI::report::plot_data(\%jsonHash,$scriptPath,$json_dir_ref) if($param{plotData});
-
 for my $run (sort keys %runList)
 {
+	#header with name of run
+	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
+
 	### for this run, get a list of reports
 	### do NOT want to send the run list to each of the functions
-	
-	$html.="<h1><a name=\"$run\">$run</a></h1>\n";
-	
 	my @sorted_lanes=sort{$jsonHash{$a}{lane}<=>$jsonHash{$b}{lane}} grep{$jsonHash{$_}{"run name"} eq $run} keys %jsonHash;
-	
-	$html.=GSI::report::data_table(\%param,\%jsonHash,\@sorted_lanes,$run);  ### parameters, jsonHash, jsonfiles - in order, id
-	$html.=GSI::report::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
-	$html.=GSI::report::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	);   ### set this as a parameter than can be turned off, on by default
-	$html.=GSI::report::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
+
+	$html.=GSI::RunReport::write_tsv(\%param,\%jsonHash,\@sorted_lanes,$run);
+	$html.=GSI::RunReport::data_table(\%param,\%jsonHash,\@sorted_lanes,$run);  ### parameters, jsonHash, jsonfiles - in order, id
+	$html.=GSI::RunReport::coverage_table(\%param,\%jsonHash,\@sorted_lanes,$run) 	if($param{showCoverageTable}	);
+	$html.=GSI::RunReport::graph_table(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showGraphTable}	&& $param{plotData} );   ### set this as a parameter than can be turned off, on by default
+	$html.=GSI::RunReport::lane_info(\%param,\%jsonHash,\@sorted_lanes,$run) 		if($param{showLaneInfo}		);
+
 }
-$html.="</body>\n</html>\n";	
-print $html;
+
+my $page = GSI::RunReport::assemble_run_report($html);
+print $page;
 
 
 exit;
 
-
 sub usage{
         print "\nUsage is jsonToGenericRunReport.pl [options] path/to/*.json\n";
         print "Options are as follows:\n";
-		print "\t -c show bases covered data.  Default is no bases covered.\n";
+				print "\t -c show bases covered data.  Default is no bases covered.\n";
         print "\t-r show read length histogram.  Default is no histogram.\n";
         print "\t-p print all images.  Default is to only show thumbnails (with links).\n";
         print "\t-g plot data.  Default it to not plot the data\n";
-		print "\t-H show hard clip stats and graph.  Default is off.\n";
+				print "\t-H show hard clip stats and graph.  Default is off.\n";
+				print "\t-n no collapse estimate!\n";
         print "\t-h displays this usage message.\n";
 
         die "\n@_\n\n";
 }
-
-
-
-

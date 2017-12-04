@@ -1,0 +1,2 @@
+Lane	Barcode	Group ID	External Name	Library	Insert Mean	Insert Stddev	Read Length	PF Reads	PF Yield	Map Percent	R1 Mismatch Percent	R2 Mismatch Percent	R1 Indel Percent	R2 Indel Percent	R1 Soft Clip Percent	R2 Soft Clip Percent	Reads/SP	Percent Mapped on Target	Estimated Yield (uncollapsed)	Coverage (uncollapsed)	Target Size (bp)	Number of Targets	Target File
+1	NoIndex	na	na	Simulated_5X_chr21	249.99	9.89	101, 101	80,020	8,082,020	100.00	0.00	0.00	0.00	0.00	0.00	0.00	8.20	62.79	5,074,846	9.63	527,189	2,085	test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed

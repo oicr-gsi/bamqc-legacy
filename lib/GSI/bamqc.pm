@@ -11,7 +11,7 @@ BEGIN {
 		#@EXPORT	=	qw();
     @EXPORT_OK   = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
 							onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-							load_json load_json_and_dirs toPhred generate_jsonHash
+							load_json toPhred generate_jsonHash
               generate_mismatch_rate generate_indel_rate generate_softclip_rate
               generate_hardclip_rate generate_error_rate get_barcode get_group
               get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
@@ -603,51 +603,20 @@ Argument  :	@files = a list of json file paths
 
 =cut
 sub load_json{
-
-	my @files=@_;
-	my %json_hash;
-	for my $file (@files){
-		print STDERR "reading from $file\n";
-		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
-		if (my $line = <$FILE>){
-			$json_hash{basename($file)} = decode_json($line);
-            $json_hash{basename($file)}{basename}=basename($file);
-            $json_hash{basename($file)}{dirname}=dirname($file);
-		}else{
-			warn "No data found in $file!\n";
-		}
-	}
-	return %json_hash;
-}
-
-=head2 load_json_and_dirs(@files)
-
-Open, decode, and store each JSON file in a hash with filename keys
-
-Returns   : two hashes: a hash with filename keys > decoded JSON hash; and
-												a hash with filename keys > directory
-
-Argument  :	@files = a list of file paths to open
-
-=cut
-sub load_json_and_dirs{
-
-	my @files=@_;
-	my %json_hash;
-  my %dir_hash;
-	for my $file (@files){
-		print STDERR "reading from $file\n";
-		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
-		if (my $line = <$FILE>){
-			$json_hash{basename($file)} = decode_json($line);
-            $json_hash{basename($file)}{basename}=basename($file);
-            $json_hash{basename($file)}{dirname}=dirname($file);
-            $dir_hash{basename($file)} = dirname($file);
-		}else{
-			warn "No data found in $file!\n";
-		}
-	}
-	return (\%json_hash, \%dir_hash);
+  	my @files=@_;
+  	my %json_hash;
+  	for my $file (@files){
+  		print STDERR "reading from $file\n";
+  		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
+  		if (my $line = <$FILE>){
+  			$json_hash{basename($file)} = decode_json($line);
+              $json_hash{basename($file)}{basename}=basename($file);
+              $json_hash{basename($file)}{dirname}=dirname($file);
+  		}else{
+  			warn "No data found in $file!\n";
+  		}
+  	}
+  	return %json_hash;
 }
 
 =head2 toPhred($char)
@@ -874,7 +843,7 @@ Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 =cut
 sub get_raw_yield {
     my ($jsonHash)=@_;
-    return int(GSI::bamqc::get_raw_reads($jsonHash) * $jsonHash->{"average read length"});
+    return int(get_raw_reads($jsonHash) * $jsonHash->{"average read length"});
 }
 
 =head2 get_map_percent( $jsonHash)
@@ -890,7 +859,7 @@ Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 =cut
 sub get_map_percent {
     my ($jsonHash)=@_;
-    return 100 * ($jsonHash->{"mapped reads"} / ( GSI::bamqc::get_raw_reads($jsonHash) || 1 ));
+    return 100 * ($jsonHash->{"mapped reads"} / (get_raw_reads($jsonHash) || 1 ));
 }
 
 =head2 get_ontarget_percent( $jsonHash)
@@ -917,14 +886,17 @@ Get the estimated total yield by multiplying total aligned based by
 
 Returns   : the estimated yield as an integer
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+Argument  :	$collapse = whether to use reads per start point to collapse down the coverage;
+            $jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
 sub get_est_yield {
-    my ($jsonHash)=@_;
-    return int($jsonHash->{"aligned bases"} *
-            (GSI::bamqc::get_ontarget_percent($jsonHash) / 100) /
-            ($jsonHash->{"reads per start point"} || 1) );
+    my ($jsonHash, $collapse)=@_;
+    my $denom=1;
+    if ($collapse) {
+        $denom=($jsonHash->{"reads per start point"} || 1);
+    }
+    return int($jsonHash->{"aligned bases"} *(get_ontarget_percent($jsonHash) / 100) / $denom);
 }
 
 =head2 get_est_coverage( $jsonHash)
@@ -935,16 +907,17 @@ Get the estimated total coverage by dividing estimated yield by
 
 Returns   : the estimated coverage as an integer
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+Argument  :	$collapse = whether to use reads per start point to collapse down the coverage;
+            $jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
 sub get_est_coverage {
-    my ($jsonHash)=@_;
-    return GSI::bamqc::get_est_yield($jsonHash) / ($jsonHash->{"target size"} || 1);
+    my ($jsonHash,$collapse)=@_;
+    return get_est_yield($jsonHash, $collapse) / ($jsonHash->{"target size"} || 1);
 }
 
 ##################### INTERNAL Subroutines ##############################
-
+##get_est_yield
 ## INTERNAL procCigar()
 ## Arguments:
 ## 		$cigar : the cigar string
