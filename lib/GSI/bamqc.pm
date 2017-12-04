@@ -6,28 +6,28 @@ BEGIN {
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-		$VERSION	=	1.00;
-		@ISA		=	qw(Exporter);
-		#@EXPORT	=	qw();
-    @EXPORT_OK   = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
-							onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-							load_json toPhred generate_jsonHash
-              generate_mismatch_rate generate_indel_rate generate_softclip_rate
-              generate_hardclip_rate generate_error_rate get_barcode get_group
-              get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
-              get_est_yield get_est_coverage);
+    $VERSION = 1.00;
+    @ISA     = qw(Exporter);
+
+    #@EXPORT	=	qw();
+    @EXPORT_OK = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
+      onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
+      load_json toPhred generate_jsonHash
+      generate_mismatch_rate generate_indel_rate generate_softclip_rate
+      generate_hardclip_rate generate_error_rate get_barcode get_group
+      get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
+      get_est_yield get_est_coverage);
+
     #%EXPORT_TAGS = ();
 }
 
-sub new{
-    my ($class, %parameters) = @_;
-    my $self = bless ({}, ref ($class) || $class);
+sub new {
+    my ( $class, %parameters ) = @_;
+    my $self = bless( {}, ref($class) || $class );
     return $self;
 }
 
-
 #################### main pod documentation begin ###################
-
 
 =head1 NAME
 
@@ -80,7 +80,6 @@ perl(1).
 
 #################### main pod documentation end ###################
 
-
 use Exporter;
 use JSON::PP;
 use File::Basename;
@@ -89,8 +88,6 @@ use File::Basename;
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input";
 
 my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-
-
 
 =head2 assess_flag($flag,$stats,$qual,$qcut)
 
@@ -114,35 +111,36 @@ Comment   : conditions assessed are as follows:
 
 =cut
 
-sub assess_flag{
-	my($flag,$stats,$qual,$qcut)=@_;
-	my $mapped=0;
-	### processing ALL reads, not just sampled
-	$$stats{"total reads"}++;
+sub assess_flag {
+    my ( $flag, $stats, $qual, $qcut ) = @_;
+    my $mapped = 0;
+    ### processing ALL reads, not just sampled
+    $$stats{"total reads"}++;
 
-
-	if ($flag & 256) {
-		$$stats{"non primary reads"}++;
-	}elsif ($flag & 4){
-		$$stats{"unmapped reads"}++;
-	}elsif ($qual < $qcut	){
-		$$stats{"qual fail reads"}++;
-	}else{
-		$mapped=1;
-		$$stats{"mapped reads"}++;
-		if ($flag & 1){
-			$$stats{"paired reads"}++;
-			if ($flag & 8){
-				$$stats{"mate unmaped reads"}++
-			}
-		}
-		if ($flag & 2){
-			$$stats{"properly paired reads"}++
-		}
-	}
-	return $mapped;
+    if ( $flag & 256 ) {
+        $$stats{"non primary reads"}++;
+    }
+    elsif ( $flag & 4 ) {
+        $$stats{"unmapped reads"}++;
+    }
+    elsif ( $qual < $qcut ) {
+        $$stats{"qual fail reads"}++;
+    }
+    else {
+        $mapped = 1;
+        $$stats{"mapped reads"}++;
+        if ( $flag & 1 ) {
+            $$stats{"paired reads"}++;
+            if ( $flag & 8 ) {
+                $$stats{"mate unmaped reads"}++;
+            }
+        }
+        if ( $flag & 2 ) {
+            $$stats{"properly paired reads"}++;
+        }
+    }
+    return $mapped;
 }
-
 
 =head2 assess_start_point($chrom,$s1,$s2,$sphash)
 
@@ -159,36 +157,36 @@ Argument  :	$chrom = the chromosome of the current record;
 										and the running ReadsPerStartPoint value;
 
 =cut
-sub assess_start_point{
-	my ($chrom,$s1,$s2,$sphash)=@_;   ### receives the left/right start points and a reference to the hash
 
-	my $leftstart="$chrom\t$s1";
-	my $pairStart="$chrom\t$s1\t$s2";
+sub assess_start_point {
+    my ( $chrom, $s1, $s2, $sphash ) =
+      @_;   ### receives the left/right start points and a reference to the hash
 
-	#### Recalculate ReadsPerStartPoint when the leftstart changes from the previous record
-	if ($leftstart ne $$sphash{current}){
-		### process all stored pairStarts
-		for my $sp (keys %{$$sphash{pairStarts}}){
-			$$sphash{count}++;   #### count each distinct pairedstart as a distinct start point
+    my $leftstart = "$chrom\t$s1";
+    my $pairStart = "$chrom\t$s1\t$s2";
 
-			### this is a running total adjusting positively or negativeley depending on the number of time the pair is seen
-			$$sphash{RPSP} += ($$sphash{pairStarts}{$sp} - $$sphash{RPSP} ) / $$sphash{count};
+    #### Recalculate ReadsPerStartPoint when the leftstart changes from the previous record
+    if ( $leftstart ne $$sphash{current} ) {
+        ### process all stored pairStarts
+        for my $sp ( keys %{ $$sphash{pairStarts} } ) {
+            $$sphash{count}++
+              ;   #### count each distinct pairedstart as a distinct start point
 
-			### delete this pairStart after processing
-			delete $$sphash{pairStarts}{$sp};
-		}
-		## reset the current position
-		$$sphash{current} = $leftstart;
-	}
+            ### this is a running total adjusting positively or negativeley depending on the number of time the pair is seen
+            $$sphash{RPSP} +=
+              ( $$sphash{pairStarts}{$sp} - $$sphash{RPSP} ) / $$sphash{count};
 
-	### store the pairStart
-	$$sphash{pairStarts}{$pairStart}++;     #### collect the paired starts
-	return $sphash;  ### return the modified hash
+            ### delete this pairStart after processing
+            delete $$sphash{pairStarts}{$sp};
+        }
+        ## reset the current position
+        $$sphash{current} = $leftstart;
+    }
+
+    ### store the pairStart
+    $$sphash{pairStarts}{$pairStart}++;    #### collect the paired starts
+    return $sphash;                        ### return the modified hash
 }
-
-
-
-
 
 =head2 read_bed($file)
 
@@ -200,41 +198,46 @@ Returns   : Hash structure containing the bed intervals
 Argument  :	$file = the name of the bed file, containing the intervals
 
 =cut
-sub read_bed{
-	my ($file)=@_;
-	my %bed;
-	my $targetCount=0;
-	open (my $BEDFILE,"<",$file) or return("ERROR : Couldn't open target file: $file.\n");
-	while (<$BEDFILE>){
-		chomp;
-		next if(/^#/);
-		my @f = split /\t/;
 
-		$targetCount++;
+sub read_bed {
+    my ($file) = @_;
+    my %bed;
+    my $targetCount = 0;
+    open( my $BEDFILE, "<", $file )
+      or return ("ERROR : Couldn't open target file: $file.\n");
+    while (<$BEDFILE>) {
+        chomp;
+        next if (/^#/);
+        my @f = split /\t/;
 
-		my $interval_size=$f[2]-$f[1];
+        $targetCount++;
 
-		### interval_size needs to be larger than 0
-		if($interval_size<1){
-			return("ERROR : the bedfile $file contains an interval with an invalid size $_ \n");
-		}
+        my $interval_size = $f[2] - $f[1];
 
-		### also want to check that the sort order is correct
+        ### interval_size needs to be larger than 0
+        if ( $interval_size < 1 ) {
+            return (
+"ERROR : the bedfile $file contains an interval with an invalid size $_ \n"
+            );
+        }
 
+        ### also want to check that the sort order is correct
 
-		push(@{$bed{intervals}{$f[0]}},{Start=>$f[1],Stop=>$f[2],Size=>$interval_size});
-		$bed{targetSize} += $interval_size;
-	    #$bed{Hist}{"$f[0]\t$f[1]\t$f[2]"} = 0;
+        push(
+            @{ $bed{intervals}{ $f[0] } },
+            { Start => $f[1], Stop => $f[2], Size => $interval_size }
+        );
+        $bed{targetSize} += $interval_size;
 
-	}
-	close $BEDFILE;
+        #$bed{Hist}{"$f[0]\t$f[1]\t$f[2]"} = 0;
 
-	$bed{numberOfTargets} = $targetCount;
-	warn "Loaded " . $bed{numberOfTargets} . " targets.\n\n";
+    }
+    close $BEDFILE;
 
+    $bed{numberOfTargets} = $targetCount;
+    warn "Loaded " . $bed{numberOfTargets} . " targets.\n\n";
 
-
-	return \%bed;
+    return \%bed;
 }
 
 =head2 cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)
@@ -254,69 +257,76 @@ Argument  :	$chrom = the chromosome to which the current read maps;
 						$p = a reference to the parameter hash;
 
 =cut
-sub cigar_stats{
-	my($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)=@_;
 
-	## the fragment positioning on the chromosome
-	my $pairStart="$chrom\t$start1\t$start2";
+sub cigar_stats {
+    my ( $chrom, $start1, $start2, $R, $strand, $cigar, $stats, $p ) = @_;
 
-	## split the cigar string, and process each piece
-	my @Op=procCigar($cigar,$strand);
+    ## the fragment positioning on the chromosome
+    my $pairStart = "$chrom\t$start1\t$start2";
+
+    ## split the cigar string, and process each piece
+    my @Op = procCigar( $cigar, $strand );
 
     ## initialize these values
-	my $readLength = 0;
-	my $cycle = 1;   ### this will keep track of the current cycle
-	my $posOffset = 0;
-	my $mappedBases = 0;
+    my $readLength  = 0;
+    my $cycle       = 1;    ### this will keep track of the current cycle
+    my $posOffset   = 0;
+    my $mappedBases = 0;
 
-	foreach my $c (@Op){
-		### MATCH, capture the number of bases in $1
-		if ($c =~ /(.*)M/){
-			$$stats{alignedCount} += $1;
-			#for (my $i = 0; $i < $1; $i++){
-			for my $i(1..$1){
-				$$stats{byCycle}{aligned}{$R}{$cycle}++;
-				$cycle++;
-			}
-			$readLength += $1;
-			$mappedBases += $1;
+    foreach my $c (@Op) {
+        ### MATCH, capture the number of bases in $1
+        if ( $c =~ /(.*)M/ ) {
+            $$stats{alignedCount} += $1;
 
-		### HARDCLIPPED BASES
-		}elsif ($c =~ /(.*)H/){
-			$$stats{hardClipCount} += $1;
-			for my $i(1..$1){
-				$$stats{byCycle}{hardClip}{$R}{$cycle}++;
-				$cycle++;
-			}
-			$readLength += $1;
-		### SOFTCLIPPED BASES
-		}elsif ($c =~ /(.*)S/){
-			$$stats{softClipCount} += $1;
-			for my $i(1..$1){
-				$$stats{byCycle}{softClip}{$R}{$cycle}++;
-				$cycle++;
-			}
-			$readLength += $1;
-		### INSERTED BASES
-		}elsif ($c =~ /(.*)I/){
-			$$stats{insertCount} += $1;
-			for my $i(1..$1){
-				$$stats{byCycle}{insertion}{$R}{$cycle}++;
-				$cycle++;
-			}
-			$readLength += $1;
-		### DELETED BASES
-		}elsif ($c =~ /(.*)D/){
-			$$stats{deletionCount} += $1;
-			for my $i(1..$1){
-				$$stats{byCycle}{deletion}{$R}{$cycle}++;
-			}
-			$mappedBases += $1;
-		}else{
-			die "Can't handle CIGAR operation: $c\n";
-		}
-	}
-	return ($readLength,$mappedBases);
+            #for (my $i = 0; $i < $1; $i++){
+            for my $i ( 1 .. $1 ) {
+                $$stats{byCycle}{aligned}{$R}{$cycle}++;
+                $cycle++;
+            }
+            $readLength  += $1;
+            $mappedBases += $1;
+
+            ### HARDCLIPPED BASES
+        }
+        elsif ( $c =~ /(.*)H/ ) {
+            $$stats{hardClipCount} += $1;
+            for my $i ( 1 .. $1 ) {
+                $$stats{byCycle}{hardClip}{$R}{$cycle}++;
+                $cycle++;
+            }
+            $readLength += $1;
+            ### SOFTCLIPPED BASES
+        }
+        elsif ( $c =~ /(.*)S/ ) {
+            $$stats{softClipCount} += $1;
+            for my $i ( 1 .. $1 ) {
+                $$stats{byCycle}{softClip}{$R}{$cycle}++;
+                $cycle++;
+            }
+            $readLength += $1;
+            ### INSERTED BASES
+        }
+        elsif ( $c =~ /(.*)I/ ) {
+            $$stats{insertCount} += $1;
+            for my $i ( 1 .. $1 ) {
+                $$stats{byCycle}{insertion}{$R}{$cycle}++;
+                $cycle++;
+            }
+            $readLength += $1;
+            ### DELETED BASES
+        }
+        elsif ( $c =~ /(.*)D/ ) {
+            $$stats{deletionCount} += $1;
+            for my $i ( 1 .. $1 ) {
+                $$stats{byCycle}{deletion}{$R}{$cycle}++;
+            }
+            $mappedBases += $1;
+        }
+        else {
+            die "Can't handle CIGAR operation: $c\n";
+        }
+    }
+    return ( $readLength, $mappedBases );
 
 }
 
@@ -333,34 +343,37 @@ Argument  :	$R = R1,R2,R?;
 						$stats = reference to the stats hash, values will be modified;
 
 =cut
-sub md_stats{
-	my ($R,$mdstring,$strand,$stats)=@_;
-	my @Op=procMD($mdstring,$strand);
-	my $cycle=1;
-	my $mm=0;
 
-	for my $md(@Op){
-		if ($md =~ /^([0-9]+)/){
-			# ignore matching bases
-			$cycle += $1;
-		}
-		elsif ($md =~ /^(\^[A-Z]+)/){
-			# ignore deletions
-		}
-		elsif ($md =~ /^([A-Z]+)/){		# mismatch!
-			foreach my $i (split(//, $1)){
-				$$stats{mismatchCount}++;
-				$$stats{byCycle}{mismatch}{$R}{$cycle}++;
-				$cycle++;
-			   	$mm++;
-			}
-		}
-		else{
-				die "Couldn't handle MD operation: $md\n";
-		}
-	}
+sub md_stats {
+    my ( $R, $mdstring, $strand, $stats ) = @_;
+    my @Op    = procMD( $mdstring, $strand );
+    my $cycle = 1;
+    my $mm    = 0;
 
-	return $mm;
+    for my $md (@Op) {
+        if ( $md =~ /^([0-9]+)/ ) {
+
+            # ignore matching bases
+            $cycle += $1;
+        }
+        elsif ( $md =~ /^(\^[A-Z]+)/ ) {
+
+            # ignore deletions
+        }
+        elsif ( $md =~ /^([A-Z]+)/ ) {    # mismatch!
+            foreach my $i ( split( //, $1 ) ) {
+                $$stats{mismatchCount}++;
+                $$stats{byCycle}{mismatch}{$R}{$cycle}++;
+                $cycle++;
+                $mm++;
+            }
+        }
+        else {
+            die "Couldn't handle MD operation: $md\n";
+        }
+    }
+
+    return $mm;
 }
 
 =head2 onTarget($chrom,$start,$mapped,$stats)
@@ -378,9 +391,10 @@ Argument  :	$chrom = the chromosome to which the read maps;
 						$stats = a reference to the stats hash containing the bed intervals, which will be modified;
 
 =cut
-sub onTarget{
-	my($chrom,$start,$mapped,$stats)=@_;
-	my $onTarget=0;
+
+sub onTarget {
+    my ( $chrom, $start, $mapped, $stats ) = @_;
+    my $onTarget = 0;
 
 ######### WHAT IS AN ONTARGET READ
 #####---------------XXXXXXXXXXXX------------
@@ -391,35 +405,37 @@ sub onTarget{
 ##### 					  1111111111111
 ##### 								0000000000
 
-	## bed intervals are hash:array:hash
-	## get array of intervals from the current chromosome
-	if($$stats{bed}{intervals}{$chrom}){
-		my @intervals=@{$$stats{bed}{intervals}{$chrom}};
-		### extract the indices of intervals which meet the necessary conditions
-		### map start position is less than the interval stop
-		### map start + mapped bases is greater than the interval start
-		my @idxs=grep{
-					($start <=$intervals[$_]{Stop}) && ( ($start+$mapped) >= $intervals[$_]{Start})
-				} (0..$#intervals);
+    ## bed intervals are hash:array:hash
+    ## get array of intervals from the current chromosome
+    if ( $$stats{bed}{intervals}{$chrom} ) {
+        my @intervals = @{ $$stats{bed}{intervals}{$chrom} };
+        ### extract the indices of intervals which meet the necessary conditions
+        ### map start position is less than the interval stop
+        ### map start + mapped bases is greater than the interval start
+        my @idxs = grep {
+                 ( $start <= $intervals[$_]{Stop} )
+              && ( ( $start + $mapped ) >= $intervals[$_]{Start} )
+        } ( 0 .. $#intervals );
 
-		my $idxcount=scalar @idxs;  ## should only be ONE interval that contains the start
+        my $idxcount =
+          scalar @idxs;   ## should only be ONE interval that contains the start
 
+        ### the read may map to multiple intervals
+        ### can either build hist on the 1st interval, or on all intervals
+        ### I think the original script only did the first
+        for my $idx ( sort { $a <=> $b } @idxs ) {
+            next
+              if ($onTarget)
+              ;    ### will turn this off if it should be mapping to all
+            ## there is overlap between the read and the interval, but not all bases are necessarily mapped to the interval
+            ## the logic here indicates that all mapp
+            $$stats{bed}{intervals}{$chrom}[$idx]{hist} += $mapped;
+            $onTarget = 1;
 
-		### the read may map to multiple intervals
-		### can either build hist on the 1st interval, or on all intervals
-		### I think the original script only did the first
-		for my $idx(sort{$a<=>$b} @idxs){
-			next if($onTarget);  ### will turn this off if it should be mapping to all
-			## there is overlap between the read and the interval, but not all bases are necessarily mapped to the interval
-			## the logic here indicates that all mapp
-			$$stats{bed}{intervals}{$chrom}[$idx]{hist}+=$mapped;
-			$onTarget=1;
-
-		}
-	}
-	return $onTarget;
+        }
+    }
+    return $onTarget;
 }
-
 
 =head2 addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)
 
@@ -438,25 +454,26 @@ Argument  :	$chrom = the chromosome to which the current read maps;
 						$stats = a reference to the stats hash;
 
 =cut
-sub addRunningBaseCoverage{
-	my ($chrom,$start1,$start2,$cigar,$strand,$stats)=@_;
-	my @Op=procCigar($cigar,$strand);
 
-	my $posOffset=0;
-	my $fragment="$chrom\t$start1\t$start2";
+sub addRunningBaseCoverage {
+    my ( $chrom, $start1, $start2, $cigar, $strand, $stats ) = @_;
+    my @Op = procCigar( $cigar, $strand );
 
-	### first review the cigar string, for matches or deletions
-	foreach my $c (@Op){
-		if ($c =~ /(.*)[M|D]/){   ## MISMATCH or DELETIONS
-			for my $i(1..$1){
-				$$stats{runningBaseCoverage}{$chrom}{$start1 + $posOffset}{$fragment}++;
-				$posOffset++;
-			}
-		}
-	}
-	return $posOffset;
+    my $posOffset = 0;
+    my $fragment  = "$chrom\t$start1\t$start2";
+
+    ### first review the cigar string, for matches or deletions
+    foreach my $c (@Op) {
+        if ( $c =~ /(.*)[M|D]/ ) {    ## MISMATCH or DELETIONS
+            for my $i ( 1 .. $1 ) {
+                $$stats{runningBaseCoverage}{$chrom}{ $start1 + $posOffset }
+                  {$fragment}++;
+                $posOffset++;
+            }
+        }
+    }
+    return $posOffset;
 }
-
 
 =head2 runningBaseCoverage($stats,$chrom,$startpos)
 
@@ -476,44 +493,53 @@ Argument  :	$stats = a reference to the stats hash, holding the runningBaseCover
 
 
 =cut
-sub runningBaseCoverage{
-	my ($stats,$chrom,$startpos)=@_;
 
-    my $cleared_positions=0;
-	### will clear out all startpoints stored that precede the current chromosome and position
-	for my $chr (keys %{$$stats{runningBaseCoverage}}){
-		for my $pos (sort {$a<=>$b} keys %{ $$stats{runningBaseCoverage}{$chr} }){  ### check each start position
+sub runningBaseCoverage {
+    my ( $stats, $chrom, $startpos ) = @_;
 
-			##process if not the current chromosome or current chromosome + before current position, or if the $chrom OR $pos variables are not supplied
-			if( !$chr || !$startpos || ($chr ne $chrom) || ($pos<$startpos) ) {
-				my %startPoints=%{$$stats{runningBaseCoverage}{$chr}{$pos}};
+    my $cleared_positions = 0;
+    ### will clear out all startpoints stored that precede the current chromosome and position
+    for my $chr ( keys %{ $$stats{runningBaseCoverage} } ) {
+        for my $pos ( sort { $a <=> $b }
+            keys %{ $$stats{runningBaseCoverage}{$chr} } )
+        {    ### check each start position
 
-			    ### how many start points/unique fragments are stored on this chromosome positionn
-				my $numStartPoints = scalar keys %startPoints;
+            ##process if not the current chromosome or current chromosome + before current position, or if the $chrom OR $pos variables are not supplied
+            if (   !$chr
+                || !$startpos
+                || ( $chr ne $chrom )
+                || ( $pos < $startpos ) )
+            {
+                my %startPoints = %{ $$stats{runningBaseCoverage}{$chr}{$pos} };
 
-				### collapsedCoverageHist : histogram of number of Unique fragments at a given position
-				for my $i(1..$numStartPoints){
-					$$stats{collapsedCoverageHist}{$i}++;
-				}
+                ### how many start points/unique fragments are stored on this chromosome positionn
+                my $numStartPoints = scalar keys %startPoints;
 
-				### nonCollapsedCoverageHist : histogram of number of fragments at a given position
-				my $totalDepth=0;
-				map{ $totalDepth+=$_ } values %startPoints;
+                ### collapsedCoverageHist : histogram of number of Unique fragments at a given position
+                for my $i ( 1 .. $numStartPoints ) {
+                    $$stats{collapsedCoverageHist}{$i}++;
+                }
 
-				for my $i(1..$totalDepth){
-					$$stats{nonCollapsedCoverageHist}{$i}++;
-				}
+                ### nonCollapsedCoverageHist : histogram of number of fragments at a given position
+                my $totalDepth = 0;
+                map { $totalDepth += $_ } values %startPoints;
 
-				delete $$stats{runningBaseCoverage}{$chr}{$pos};  ### delete this position from the running BaseCoverageHash
-				$cleared_positions++;
-			}
+                for my $i ( 1 .. $totalDepth ) {
+                    $$stats{nonCollapsedCoverageHist}{$i}++;
+                }
 
+                delete $$stats{runningBaseCoverage}{$chr}{$pos}
+                  ;   ### delete this position from the running BaseCoverageHash
+                $cleared_positions++;
+            }
 
-		}
-		delete $$stats{runningBaseCoverage}{$chr} if(!$chr || ((defined $chrom) and ($chr ne $chrom)));  ### delete previous chromosome keys
-	}
+        }
+        delete $$stats{runningBaseCoverage}{$chr}
+          if ( !$chr || ( ( defined $chrom ) and ( $chr ne $chrom ) ) )
+          ;           ### delete previous chromosome keys
+    }
 
-	return $cleared_positions;
+    return $cleared_positions;
 }
 
 =head2 HistStats(%val)
@@ -525,32 +551,33 @@ Returns   : mean and standard deviation of the insert sizes
 Argument  :	%val = a hash, with keys = insert size, values = count for each insert size
 
 =cut
-sub HistStats{
-	#my %val = %{ $_[0] };
 
-	my ($val)=@_;
-	my ($mean,$stdv)=(0,0);
+sub HistStats {
 
-	if($val){
-		my($sum,$count)=(0,0);
-		map{
-			$sum += ($_ * $$val{$_});
-			$count += $$val{$_};
-		} keys %$val;
-		$mean = $count>0 ? $sum/$count : 0;
+    #my %val = %{ $_[0] };
 
-		my ($squareDiff);
-		map{
-			$squareDiff += ((($_ - $mean)*($_ - $mean)) * $$val{$_});
-		} keys %$val;
+    my ($val) = @_;
+    my ( $mean, $stdv ) = ( 0, 0 );
 
-		$stdv = $count>0 ? sqrt($squareDiff/$count) : 0;
-	}
+    if ($val) {
+        my ( $sum, $count ) = ( 0, 0 );
+        map {
+            $sum   += ( $_ * $$val{$_} );
+            $count += $$val{$_};
+        } keys %$val;
+        $mean = $count > 0 ? $sum / $count : 0;
 
-	return ($mean,$stdv);
+        my ($squareDiff);
+        map {
+            $squareDiff += ( ( ( $_ - $mean ) * ( $_ - $mean ) ) * $$val{$_} );
+        } keys %$val;
+
+        $stdv = $count > 0 ? sqrt( $squareDiff / $count ) : 0;
+    }
+
+    return ( $mean, $stdv );
 
 }
-
 
 =head2 insertMapping($tlen,$rnext,$hash,$p)
 
@@ -567,31 +594,27 @@ Argument  :	$tlen = template length;
 						$p = parameter hash;
 
 =cut
-sub insertMapping{
-	my($tlen,$rnext,$hash,$p)=@_;
-	my $class="";
-	if(($tlen>0) && ($rnext eq "=")){  ### maps to the same chromosome
-		if($tlen<$$p{normalInsertMax}){
-			### within expected size , will store the template length for histogram construction
-			$$hash{normalInsertSizes}{$tlen}++;
-			$class="normalInsertSize";
-		}else{
-			$$hash{pairsMappedAbnormallyFar}++;
-			$class="pairsMappedAbnormallyFar";
-		}
-	}elsif($rnext ne "*"){              ### mapped to a different chromosome
-		$$hash{pairsMappedToDifferentChr}++;
-		$class="pairsMappedToDifferentChr";
-	}
-	return $class;
+
+sub insertMapping {
+    my ( $tlen, $rnext, $hash, $p ) = @_;
+    my $class = "";
+    if ( ( $tlen > 0 ) && ( $rnext eq "=" ) ) {  ### maps to the same chromosome
+        if ( $tlen < $$p{normalInsertMax} ) {
+            ### within expected size , will store the template length for histogram construction
+            $$hash{normalInsertSizes}{$tlen}++;
+            $class = "normalInsertSize";
+        }
+        else {
+            $$hash{pairsMappedAbnormallyFar}++;
+            $class = "pairsMappedAbnormallyFar";
+        }
+    }
+    elsif ( $rnext ne "*" ) {    ### mapped to a different chromosome
+        $$hash{pairsMappedToDifferentChr}++;
+        $class = "pairsMappedToDifferentChr";
+    }
+    return $class;
 }
-
-
-
-
-
-
-
 
 =head2 load_json(@files)
 
@@ -602,21 +625,23 @@ Returns   : a hash with filename keys > decoded JSON hash
 Argument  :	@files = a list of json file paths
 
 =cut
-sub load_json{
-  	my @files=@_;
-  	my %json_hash;
-  	for my $file (@files){
-  		print STDERR "reading from $file\n";
-  		open (my $FILE,"<",$file) or die "Couldn't open $file.\n";
-  		if (my $line = <$FILE>){
-  			$json_hash{basename($file)} = decode_json($line);
-              $json_hash{basename($file)}{basename}=basename($file);
-              $json_hash{basename($file)}{dirname}=dirname($file);
-  		}else{
-  			warn "No data found in $file!\n";
-  		}
-  	}
-  	return %json_hash;
+
+sub load_json {
+    my @files = @_;
+    my %json_hash;
+    for my $file (@files) {
+        print STDERR "reading from $file\n";
+        open( my $FILE, "<", $file ) or die "Couldn't open $file.\n";
+        if ( my $line = <$FILE> ) {
+            $json_hash{ basename($file) }           = decode_json($line);
+            $json_hash{ basename($file) }{basename} = basename($file);
+            $json_hash{ basename($file) }{dirname}  = dirname($file);
+        }
+        else {
+            warn "No data found in $file!\n";
+        }
+    }
+    return %json_hash;
 }
 
 =head2 toPhred($char)
@@ -628,11 +653,12 @@ Returns   : Phred score
 Argument  :	$char = the single character to convert
 
 =cut
-sub toPhred{
-	my $char = $_[0];
-	my $ascii = ord($char);
-	my $offset = 33;
-	return $ascii - $offset;
+
+sub toPhred {
+    my $char   = $_[0];
+    my $ascii  = ord($char);
+    my $offset = 33;
+    return $ascii - $offset;
 }
 
 =head2 generate_jsonHash($stats,$p)
@@ -646,56 +672,83 @@ Argument  :	$stats = reference to the stats hash, where data is stored;
 						$p = reference to the parameters hash;
 
 =cut
-sub generate_jsonHash{
-	my($stats,$p)=@_;
 
-	my %jsonHash=map{ ($_,$$stats{$_} ) } (	"number of ends",
-  								"total reads","mapped reads","unmapped reads","non primary reads","paired reads",
-						    	"properly paired reads","mate unmaped reads","qual fail reads","qual cut",
-						    	"aligned bases","mismatch bases","inserted bases","deleted bases","soft clip bases","hard clip bases",
-								"reads per start point","reads on target","target file","target size","number of targets",
-							);
+sub generate_jsonHash {
+    my ( $stats, $p ) = @_;
 
-	$jsonHash{"total reads"} = $$stats{"total reads"} * 1;
+    my %jsonHash = map { ( $_, $$stats{$_} ) } (
+        "number of ends",
+        "total reads",
+        "mapped reads",
+        "unmapped reads",
+        "non primary reads",
+        "paired reads",
+        "properly paired reads",
+        "mate unmaped reads",
+        "qual fail reads",
+        "qual cut",
+        "aligned bases",
+        "mismatch bases",
+        "inserted bases",
+        "deleted bases",
+        "soft clip bases",
+        "hard clip bases",
+        "reads per start point",
+        "reads on target",
+        "target file",
+        "target size",
+        "number of targets",
+    );
 
-	$jsonHash{"average read length"} = $$stats{averageReadLength}{overall};
-	$jsonHash{"insert mean"} = $$stats{meanInsert} || "0";      ## this is quoted to be consistent with samStats.pl
-	$jsonHash{"insert stdev"} = $$stats{stdevInsert} || "0";	## this is quoted to be consistent with samStats.pl
-	### capture any jsonHash elements storeed in the parameters
+    $jsonHash{"total reads"} = $$stats{"total reads"} * 1;
 
-	map{
-		$jsonHash{$_}=$$p{jsonHash}{$_};
-	} keys %{$$p{jsonHash}};
+    $jsonHash{"average read length"} = $$stats{averageReadLength}{overall};
+    $jsonHash{"insert mean"}         = $$stats{meanInsert}
+      || "0";    ## this is quoted to be consistent with samStats.pl
+    $jsonHash{"insert stdev"} = $$stats{stdevInsert}
+      || "0";    ## this is quoted to be consistent with samStats.pl
+    ### capture any jsonHash elements storeed in the parameters
 
-	if($$p{reportBasesCovered}){
-		$jsonHash{"non collapsed bases covered"} = $$stats{nonCollapsedCoverageHist};
-		$jsonHash{"collapsed bases covered"}     = $$stats{collapsedCoverageHist};
-	}
-	$jsonHash{"insert histogram"} = $$stats{normalInsertSizes} || {};
+    map { $jsonHash{$_} = $$p{jsonHash}{$_}; } keys %{ $$p{jsonHash} };
 
-	for my $R(qw/R1 R2 R?/){
-		(my $read=$R)=~s/R/read /;
-		$jsonHash{"$read quality histogram"}  	= $$stats{qualHist}{$R} || {};
-		$jsonHash{"$read quality by cycle"}   	= $$stats{qualLine}{$R};   ### this will get an undef value, not empty hash, to match samStats.pl
-		$jsonHash{"$read length histogram"} 	= $$stats{readLengthHist}{$R} || {};
-		$jsonHash{"$read average length"} 		= $$stats{averageReadLength}{$R} || 0;
-		$jsonHash{"$read aligned by cycle"} 	= $$stats{byCycle}{aligned}{$R} || {};
-		$jsonHash{"$read mismatch by cycle"} 	= $$stats{byCycle}{mismatch}{$R} || {};
-		$jsonHash{"$read insertion by cycle"} 	= $$stats{byCycle}{insertion}{$R} || {};
-		$jsonHash{"$read deletion by cycle"} 	= $$stats{byCycle}{deletion}{$R} || {};
-		$jsonHash{"$read soft clip by cycle"} 	= $$stats{byCycle}{softClip}{$R} || {};
-		$jsonHash{"$read hard clip by cycle"} 	= $$stats{byCycle}{hardClip}{$R} || {};
-	}
+    if ( $$p{reportBasesCovered} ) {
+        $jsonHash{"non collapsed bases covered"} =
+          $$stats{nonCollapsedCoverageHist};
+        $jsonHash{"collapsed bases covered"} = $$stats{collapsedCoverageHist};
+    }
+    $jsonHash{"insert histogram"} = $$stats{normalInsertSizes} || {};
 
-	$jsonHash{"number of ends"} = $$stats{"properly paired reads"}>0 ? "paired end" : "single end";
+    for my $R (qw/R1 R2 R?/) {
+        ( my $read = $R ) =~ s/R/read /;
+        $jsonHash{"$read quality histogram"} = $$stats{qualHist}{$R} || {};
+        $jsonHash{"$read quality by cycle"} = $$stats{qualLine}{$R}
+          ; ### this will get an undef value, not empty hash, to match samStats.pl
+        $jsonHash{"$read length histogram"} = $$stats{readLengthHist}{$R} || {};
+        $jsonHash{"$read average length"} = $$stats{averageReadLength}{$R} || 0;
+        $jsonHash{"$read aligned by cycle"} =
+          $$stats{byCycle}{aligned}{$R} || {};
+        $jsonHash{"$read mismatch by cycle"} =
+          $$stats{byCycle}{mismatch}{$R} || {};
+        $jsonHash{"$read insertion by cycle"} =
+          $$stats{byCycle}{insertion}{$R} || {};
+        $jsonHash{"$read deletion by cycle"} =
+          $$stats{byCycle}{deletion}{$R} || {};
+        $jsonHash{"$read soft clip by cycle"} =
+          $$stats{byCycle}{softClip}{$R} || {};
+        $jsonHash{"$read hard clip by cycle"} =
+          $$stats{byCycle}{hardClip}{$R} || {};
+    }
 
-	$jsonHash{"number of targets"} = $$p{bed}{numberOfTargets};
-	$jsonHash{"qual cut"} = $$p{qualCut};
-	$jsonHash{"reads per start point"} = $$stats{startPoint}{RPSP};
-	$jsonHash{"target size"} = $$p{bed}{targetSize};
-	$jsonHash{"target file"} = $$p{bedFile};
+    $jsonHash{"number of ends"} =
+      $$stats{"properly paired reads"} > 0 ? "paired end" : "single end";
 
-	return %jsonHash;
+    $jsonHash{"number of targets"}     = $$p{bed}{numberOfTargets};
+    $jsonHash{"qual cut"}              = $$p{qualCut};
+    $jsonHash{"reads per start point"} = $$stats{startPoint}{RPSP};
+    $jsonHash{"target size"}           = $$p{bed}{targetSize};
+    $jsonHash{"target file"}           = $$p{bedFile};
+
+    return %jsonHash;
 
 }
 
@@ -709,12 +762,12 @@ Argument  :	$hash = The hash containing the JSON file contents to analyse;
 						$prefix = A prefix to use when accessing the keys of hash;
 
 =cut
+
 sub generate_error_rate {
     my ( $hash, $prefix ) = @_;
     return generateRatePercent( $hash, $prefix,
-             ["mismatch", "insertion", "deletion" ],
-            ["aligned"]
-        );
+        [ "mismatch", "insertion", "deletion" ],
+        ["aligned"] );
 }
 
 =head2 generate_mismatch_rate( $hash, $prefix )
@@ -727,11 +780,10 @@ Argument  :	$hash = The hash containing the JSON file contents to analyse;
 						$prefix = A prefix to use when accessing the keys of hash;
 
 =cut
+
 sub generate_mismatch_rate {
     my ( $hash, $prefix ) = @_;
-    return generateRatePercent( $hash, $prefix,
-            ["mismatch"],
-            ["aligned"] );
+    return generateRatePercent( $hash, $prefix, ["mismatch"], ["aligned"] );
 }
 
 =head2 generate_indel_rate( $hash, $prefix )
@@ -744,11 +796,11 @@ Argument  :	$hash = The hash containing the JSON file contents to analyse;
 						$prefix = A prefix to use when accessing the keys of hash;
 
 =cut
+
 sub generate_indel_rate {
     my ( $hash, $prefix ) = @_;
-   return generateRatePercent( $hash, $prefix,
-            [ "insertion", "deletion" ],
-            ["aligned"]);
+    return generateRatePercent( $hash, $prefix, [ "insertion", "deletion" ],
+        ["aligned"] );
 }
 
 =head2 generate_softclip_rate( $hash, $prefix )
@@ -761,11 +813,11 @@ Argument  :	$hash = The hash containing the JSON file contents to analyse;
 						$prefix = A prefix to use when accessing the keys of hash;
 
 =cut
+
 sub generate_softclip_rate {
     my ( $hash, $prefix ) = @_;
-    return generateRatePercent( $hash, $prefix,
-            ["soft clip"],
-            [ "soft clip", "aligned" ]);
+    return generateRatePercent( $hash, $prefix, ["soft clip"],
+        [ "soft clip", "aligned" ] );
 }
 
 =head2 generate_hardclip_rate( $hash, $prefix )
@@ -778,11 +830,11 @@ Argument  :	$hash = The hash containing the JSON file contents to analyse;
 						$prefix = A prefix to use when accessing the keys of hash;
 
 =cut
+
 sub generate_hardclip_rate {
     my ( $hash, $prefix ) = @_;
-    return generateRatePercent( $hash, $prefix,
-            ["hard clip"],
-            [ "soft clip", "aligned", "hard clip" ]);
+    return generateRatePercent( $hash, $prefix, ["hard clip"],
+        [ "soft clip", "aligned", "hard clip" ] );
 }
 
 =head2 get_barcode( $jsonHash)
@@ -794,8 +846,9 @@ Returns   : the barcode if it exists; otherwise 'NoIndex'
 Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_barcode {
-    my ( $jsonHash ) =@_;
+    my ($jsonHash) = @_;
     return exists $jsonHash->{barcode} ? $jsonHash->{barcode} : 'NoIndex';
 }
 
@@ -809,13 +862,15 @@ Returns   : the group id and group id description separated by a space, if they
 Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_group {
-    my ($jsonHash)=@_;
-    return exists $jsonHash->{"group id"}
-            ? exists $jsonHash->{"group id description"}
-                ? $jsonHash->{"group id description"}." ".$jsonHash->{'group id'}
-                : $jsonHash->{'group id'}
-            : "na";
+    my ($jsonHash) = @_;
+    return
+        exists $jsonHash->{"group id"}
+      ? exists $jsonHash->{"group id description"}
+          ? $jsonHash->{"group id description"} . " " . $jsonHash->{'group id'}
+          : $jsonHash->{'group id'}
+      : "na";
 }
 
 =head2 get_raw_reads( $jsonHash)
@@ -827,9 +882,13 @@ Returns   : the total number of reads (int)
 Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_raw_reads {
-    my ($jsonHash)=@_;
-    return int($jsonHash->{"mapped reads"} + $jsonHash->{"unmapped reads"} + $jsonHash->{"qual fail reads"});
+    my ($jsonHash) = @_;
+    return
+      int( $jsonHash->{"mapped reads"} +
+          $jsonHash->{"unmapped reads"} +
+          $jsonHash->{"qual fail reads"} );
 }
 
 =head2 get_raw_yield( $jsonHash)
@@ -841,9 +900,10 @@ Returns   : the total yield (int)
 Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_raw_yield {
-    my ($jsonHash)=@_;
-    return int(get_raw_reads($jsonHash) * $jsonHash->{"average read length"});
+    my ($jsonHash) = @_;
+    return int( get_raw_reads($jsonHash) * $jsonHash->{"average read length"} );
 }
 
 =head2 get_map_percent( $jsonHash)
@@ -857,9 +917,11 @@ Returns   : the map percentage as an integer
 Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_map_percent {
-    my ($jsonHash)=@_;
-    return 100 * ($jsonHash->{"mapped reads"} / (get_raw_reads($jsonHash) || 1 ));
+    my ($jsonHash) = @_;
+    return 100 *
+      ( $jsonHash->{"mapped reads"} / ( get_raw_reads($jsonHash) || 1 ) );
 }
 
 =head2 get_ontarget_percent( $jsonHash)
@@ -873,9 +935,12 @@ Returns   : the on target percentage as an integer
 Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_ontarget_percent {
-    my ($jsonHash)=@_;
-    return 100 * ($jsonHash->{"reads on target"} / ($jsonHash->{"mapped reads"} || 1) ); # $rawReads) * 100;   # could argue using this either way
+    my ($jsonHash) = @_;
+    return 100 *
+      ( $jsonHash->{"reads on target"} / ( $jsonHash->{"mapped reads"} || 1 ) )
+      ;    # $rawReads) * 100;   # could argue using this either way
 }
 
 =head2 get_est_yield( $jsonHash)
@@ -890,13 +955,17 @@ Argument  :	$collapse = whether to use reads per start point to collapse down th
             $jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_est_yield {
-    my ($jsonHash, $collapse)=@_;
-    my $denom=1;
+    my ( $jsonHash, $collapse ) = @_;
+    my $denom = 1;
     if ($collapse) {
-        $denom=($jsonHash->{"reads per start point"} || 1);
+        $denom = ( $jsonHash->{"reads per start point"} || 1 );
     }
-    return int($jsonHash->{"aligned bases"} *(get_ontarget_percent($jsonHash) / 100) / $denom);
+    return
+      int( $jsonHash->{"aligned bases"} *
+          ( get_ontarget_percent($jsonHash) / 100 ) /
+          $denom );
 }
 
 =head2 get_est_coverage( $jsonHash)
@@ -911,9 +980,11 @@ Argument  :	$collapse = whether to use reads per start point to collapse down th
             $jsonHash = The hash containing the JSON file contents to analyse.
 
 =cut
+
 sub get_est_coverage {
-    my ($jsonHash,$collapse)=@_;
-    return get_est_yield($jsonHash, $collapse) / ($jsonHash->{"target size"} || 1);
+    my ( $jsonHash, $collapse ) = @_;
+    return get_est_yield( $jsonHash, $collapse ) /
+      ( $jsonHash->{"target size"} || 1 );
 }
 
 ##################### INTERNAL Subroutines ##############################
@@ -924,15 +995,15 @@ sub get_est_coverage {
 ## 		$strand : the strand to which the read maps
 ## Returns : an array of cigar pieces
 ## Description : breaks the cigar string into pieces denoted by length/type, accounting for strand
-sub procCigar{
-    my ($cigar,$strand) = @_;
+sub procCigar {
+    my ( $cigar, $strand ) = @_;
     my @cigarOp;
 
-    while ($cigar =~ /^([0-9]+[MIDNSHPX=]).*$/){
-        push (@cigarOp, $1);
+    while ( $cigar =~ /^([0-9]+[MIDNSHPX=]).*$/ ) {
+        push( @cigarOp, $1 );
         $cigar =~ s/$1//;
     }
-    @cigarOp=reverse(@cigarOp) if($strand eq "-");
+    @cigarOp = reverse(@cigarOp) if ( $strand eq "-" );
 
     return @cigarOp;
 }
@@ -943,28 +1014,25 @@ sub procCigar{
 ##  $strand : the strand to which the read maps
 ## Returns : an array of mdstring pieces
 ## Descriptions : breaks the mdstring into pieces, accounting for strand
-sub procMD{
-    my ($md,$strand) = @_;
+sub procMD {
+    my ( $md, $strand ) = @_;
     my @mdOp;
-    while ($md ne ""){
-        if ($md =~ /^([0-9]+)/)
-        {
-            push(@mdOp, $1);
+    while ( $md ne "" ) {
+        if ( $md =~ /^([0-9]+)/ ) {
+            push( @mdOp, $1 );
             $md =~ s/^$1//;
         }
-        if ($md =~ /^([A-Z]+)/)
-        {
-            push(@mdOp, $1);
+        if ( $md =~ /^([A-Z]+)/ ) {
+            push( @mdOp, $1 );
             $md =~ s/^$1//;
         }
-        if ($md =~ /^(\^)([A-Z]+)/)
-        {
-            push(@mdOp, "^$2");
+        if ( $md =~ /^(\^)([A-Z]+)/ ) {
+            push( @mdOp, "^$2" );
             $md =~ s/^\^$2//;
         }
     }
 
-    @mdOp=reverse(@mdOp) if($strand eq "-");
+    @mdOp = reverse(@mdOp) if ( $strand eq "-" );
 
     return @mdOp;
 }
@@ -989,7 +1057,7 @@ sub generateRatePercent {
         $denominator +=
           byCycleToCount( $hash->{ $prefix . $name . " by cycle" } );
     }
-    return $numerator * 100.0 / ( $denominator || 1 ) ;
+    return $numerator * 100.0 / ( $denominator || 1 );
 }
 
 =head2 findStart($cigarOp, $start)
@@ -1001,16 +1069,18 @@ Returns   : the new start position, adjusted to take soft clipping into account
 Argument  :	$cigarOp = the cigar string
 
 =cut
-sub findStart{
-        my @cigarOp = @{ $_[0] };
-        my $start = $_[1];
 
-        if ($cigarOp[0] =~ /(.*)S/)     # if first cigar operation is a soft clip, adjust start point
-        {
-                $start -= $1;
-        }
+sub findStart {
+    my @cigarOp = @{ $_[0] };
+    my $start   = $_[1];
 
-        return $start;
+    if ( $cigarOp[0] =~
+        /(.*)S/ )  # if first cigar operation is a soft clip, adjust start point
+    {
+        $start -= $1;
+    }
+
+    return $start;
 }
 
 =head2 findEnd($cigarOp, $end)
@@ -1023,24 +1093,26 @@ Argument  :	$cigarOp = the cigar string;
 						$end = the assumed end of the string;
 
 =cut
-sub findEnd{
-        my @cigarOp = @{ $_[0] };
-        my $end = $_[1];
-        if ($cigarOp[0] =~ /(.*)S/) {     # if first cigar operation is a soft clip, adjust start point
-                $end -= $1;
+
+sub findEnd {
+    my @cigarOp = @{ $_[0] };
+    my $end     = $_[1];
+    if ( $cigarOp[0] =~ /(.*)S/ )
+    {    # if first cigar operation is a soft clip, adjust start point
+        $end -= $1;
+    }
+    foreach my $cig (@cigarOp) {
+        if ( $cig =~ /(.*)S/ ) {
+            $end += $1;
         }
-        foreach my $cig (@cigarOp) {
-                if ($cig =~ /(.*)S/) {
-                        $end += $1;
-                }
-                elsif ($cig =~ /(.*)M/){
-                        $end += $1;
-                }
-                elsif ($cig =~ /(.*)D/){
-                        $end += $1;
-                }
+        elsif ( $cig =~ /(.*)M/ ) {
+            $end += $1;
         }
-        return $end;
+        elsif ( $cig =~ /(.*)D/ ) {
+            $end += $1;
+        }
+    }
+    return $end;
 }
 
 sub byCycleToCount {
