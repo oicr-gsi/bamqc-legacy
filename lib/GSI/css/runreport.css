@@ -10,10 +10,3 @@ table {
     border-collapse:collapse;
 }
 
-/* Sortable tables */
-table.sortable thead {
-    background-color:#eee;
-    color:#000000;
-    font-weight: bold;
-    cursor: default;
-}
