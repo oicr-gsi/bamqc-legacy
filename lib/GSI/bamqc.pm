@@ -1046,16 +1046,15 @@ sub procMD {
 # Returns[Str]: A formatted percentage of all the sum of all numerator items divided by the sum of all the denominator items.
 sub generateRatePercent {
     my ( $hash, $prefix, $numerator_names, $denominator_names ) = @_;
-
     my $numerator = 0;
     for my $name ( @{$numerator_names} ) {
         $numerator +=
-          byCycleToCount( $hash->{ $prefix . $name . " by cycle" } );
+          byCycleToCount( $hash->{ $prefix .' '. $name . " by cycle" } );
     }
     my $denominator = 0;
     for my $name ( @{$denominator_names} ) {
         $denominator +=
-          byCycleToCount( $hash->{ $prefix . $name . " by cycle" } );
+          byCycleToCount( $hash->{ $prefix .' '. $name . " by cycle" } );
     }
     return $numerator * 100.0 / ( $denominator || 1 );
 }
