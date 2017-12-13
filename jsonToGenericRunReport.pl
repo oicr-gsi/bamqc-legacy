@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Original Script : Rob Denroche
 #Modifications : Genome Sequence Informatics https://github.com/oicr-gsi
 # Copyright (C) 2017 The Ontario Institute for Cancer Research

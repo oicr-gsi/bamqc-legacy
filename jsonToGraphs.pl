@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #Original Script : Rob Denroche
 #Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>
 #Last modified : 2015-01-07
