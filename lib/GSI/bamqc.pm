@@ -29,33 +29,33 @@ sub new {
 
 #################### main pod documentation begin ###################
 
-=head1 NAME
+=begin html
+
+<div class="container">
+    <div class="row">
+      <div class="column" style="margin-top: 25%">
+
+=end html
+
+=head1 General Information
+
+=head2 NAME
 
 bamqc - Generate quality control statistics from BAM files
 
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   use GSI::bamqc;
 
-
-=head1 DESCRIPTION
-
-
-=head1 USAGE
-
-=head1 BUGS
-
-=head1 SUPPORT
-
-=head1 AUTHOR
+=head2 AUTHOR
 
 Genome Sequence Informatics
 Ontario Institute for Cancer Research
 https://github.com/oicr-gsi
 
-=head1 COPYRIGHT
+=head2 COPYRIGHT
 
-Copyright (C) 2017 The Ontario Institute for Cancer Research
+Copyright (C) 2018 The Ontario Institute for Cancer Research
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -72,9 +72,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
-=head1 SEE ALSO
 
-perl(1).
+=head1 Subroutines
 
 =cut
 
@@ -89,25 +88,48 @@ use File::Basename;
 
 my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
+=for html <hr>
+
 =head2 assess_flag($flag,$stats,$qual,$qcut)
 
-Assesses the sam flag and stores information in the reference hash
+Assesses the sam flag and stores information in the $stats reference hash
 
-Returns   : 1 if the read is mapped, 0 if not
+=head3 Arguments
 
-Argument  :	$flag = the sam record flag;
-						$stats = a reference to a hash, which will be modified;
-						$qual = the alignment quality;
-						$param = the parameter hash;
+=over
 
-Comment   : conditions assessed are as follows:
-						256="non primary reads";
-						4="unmapped read";
-						$qual < $qcut="qual fail reads";
-						if none of the above="mapped reads";
-						1="paired reads";
-						8="mate unmaped reads" [sic];
-						2="properly paired reads"
+=item $flag : the sam record flag;
+
+=item $stats : a reference to a hash, which will be modified;
+
+=item $qual : the alignment quality;
+
+=item $param : the parameter hash;
+
+=back
+
+=head3 Returns
+
+1 if the read is mapped, 0 if not (modifies $stats with statuses).
+The following labels will be incremented in $stats if found.
+
+=over
+
+=item "non primary reads" = 256
+
+=item "unmapped reads = 4;
+
+=item "qual fail reads" = $qual < $qcut ;
+
+=item "mapped reads" = if none of the above are true
+
+=item "paired reads" = 1
+
+=item "mate unmaped reads" [sic] = 8;
+
+=item "properly paired reads" = 2
+
+=back
 
 =cut
 
@@ -142,19 +164,44 @@ sub assess_flag {
     return $mapped;
 }
 
+=for html <hr>
+
 =head2 assess_start_point($chrom,$s1,$s2,$sphash)
 
-Keeps a running calculation of ReadsPerStartPoint, updating this
-						value with each read.  It is dependent on the stream alignment data
-						being properly sorted
+Keeps a running calculation of ReadsPerStartPoint, updating
+value with each read. It is dependent on the stream alignment data
+being properly sorted.
 
-Returns   : A revised StartPoint hash, with updated stats
+Reads per start point is recalculated when the leftstart changes from the previous record
 
-Argument  :	$chrom = the chromosome of the current record;
-						$s1	 = the position of the current record = the leftmost start point;
-						$s2    = the position of the paired record = the rightmost start point;
-						$sphash	 = the current StartPoint hash, holding the current position;
-										and the running ReadsPerStartPoint value;
+
+=head3 Arguments
+
+=over
+
+=item $chrom = the chromosome of the current record;
+
+=item $s1	 = the position of the current record = the leftmost start point;
+
+=item $s2    = the position of the paired record = the rightmost start point;
+
+=item $sphash	 = the current StartPoint hash, holding the current position and the running ReadsPerStartPoint value;
+
+=back
+
+
+=head3 Returns
+
+A revised StartPoint $sphash hash, with updated stats:
+
+=over
+
+=item "count" : count each distinct pairedstart as a distinct start point
+
+=item "current" : record the current left start point
+
+=item "RPSP" : reads per start point
+
 
 =cut
 
@@ -188,16 +235,46 @@ sub assess_start_point {
     return $sphash;                        ### return the modified hash
 }
 
+
+=for html <hr>
+
 =head2 read_bed($file)
 
-Reads in a bed file, storing in the intervals in an array of hashes
-						indicating, Start/Stop and size
+Reads in a bed file, storing in C<intervals> in an array of hashes
+indicating, Start/Stop and size
 
-Returns   : Hash structure containing the bed intervals
 
-Argument  :	$file = the name of the bed file, containing the intervals
+=head3 Arguments
+
+=over
+
+=item $file = the name of the bed file, containing the intervals
+
+=back
+
+=head3 Errors
+
+=over
+
+=item if the bed file can't be opened
+
+=item if the bed file contains an interval of size 0
+
+=back
+
+=head3 Returns
+
+Hash structure containing the bed intervals
+
+ %bed {
+  @intervals { Start, Stop, Size }
+  targetSize
+  numberOfTargets
+ }
 
 =cut
+
+
 
 sub read_bed {
     my ($file) = @_;
@@ -240,21 +317,63 @@ sub read_bed {
     return \%bed;
 }
 
+=for html <hr>
+
 =head2 cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)
 
-Processes the cigarString, by breaking into pieces and assessing how
-						the read is mapped to the reference
+Processes the cigarString by breaking into pieces and assessing how
+the read is mapped to the reference
 
-Returns   : A list with two values, $readLength and $mappedBases
 
-Argument  :	$chrom = the chromosome to which the current read maps;
-						$start1 = the leftmost startpoint;
-						$start2 = the rightmost startpoint for the paired end;
-						$R = the read (R1,R2,R?);
-						$strand = the strand to which the read maps, from the sam flag;
-						$cigar = the cigar string;
-						$stats = a reference to the stats hash, which will be modified;
-						$p = a reference to the parameter hash;
+=head3 Arguments
+
+=over
+
+=item $chrom = the chromosome to which the current read maps;
+
+=item $start1 = the leftmost startpoint;
+
+=item	$start2 = the rightmost startpoint for the paired end;
+
+=item	$R = the read (R1,R2,R?);
+
+=item $strand = the strand to which the read maps, from the sam flag;
+
+=item $cigar = the cigar string;
+
+=item $stats = a reference to the stats hash, which will be modified;
+
+=item	$p = a reference to the parameter hash;
+
+=back
+
+=head3 Returns
+
+A list with two values, $readLength and $mappedBases. Increments $stats with values:
+
+=over
+
+=item C<alignedCount>, C<hardClipCount>, C<softClipCount>, C<insertCount>, C<deletionCount>
+
+=item C<byCycle> > C<aligned> > read > cycle
+
+=item C<byCycle> > C<hardClip> > read > cycle
+
+=item C<byCycle> > C<softClip> > read > cycle
+
+=item C<byCycle> > C<insertion> > read > cycle
+
+=item C<byCycle> > C<deletion> > read > cycle
+
+=back
+
+=head3 Errors
+
+=over
+
+=item if the cigar string contains an unknown operation
+
+=back
 
 =cut
 
@@ -330,17 +449,40 @@ sub cigar_stats {
 
 }
 
+=for html <hr>
+
 =head2 md_stats($R,$mdstring,$strand,$stats)
 
-Processes the cigarString, by breaking into pieces and assessing how
-						the read is mapped to the reference
+Processes the MD:Z tag in the SAM.
 
-Returns   : the number of mismatches defined by the MD string
 
-Argument  :	$R = R1,R2,R?;
-						$mdstring = the mismatch string, extracted from the MD:Z tag in the sam record;
-						$strand = to which strand does the read map;
-						$stats = reference to the stats hash, values will be modified;
+=head3 Arguments
+
+=over
+
+=item $R = the read; one of R1,R2,R?;
+
+=item $mdstring = the mismatch string, extracted from the MD:Z tag in the sam record;
+
+=item $strand = to which strand does the read map;
+
+=item $stats = reference to the stats hash, values will be modified;
+
+=back
+
+=head3 Return
+
+The number of mismatches defined by the MD string.
+Increments the following in the $stats hash, if encountered.
+
+=over
+
+=item C<mismatchCount>
+
+=item C<byCycle> > C<mismatch> > Read > cycle
+
+=back
+
 
 =cut
 
@@ -376,34 +518,59 @@ sub md_stats {
     return $mm;
 }
 
+=for html <hr>
+
 =head2 onTarget($chrom,$start,$mapped,$stats)
 
 Determines if the read overlaps to any degree intervals contained
 						within the bedfile record.  The bedfile record is modified to
-						indicated mapping to this interval
+						indicated mapping to this interval. One read may map to multiple intervals.
 
-Returns   : 1 if mapped to Target, 0 if not
+=head3 What is an on-target read?
 
-Argument  :	$chrom = the chromosome to which the read maps;
-						$start = the leftmost start position;
-						$mapped = the number of bases mapped;
-						$bed = a reference to the bed hash;
-						$stats = a reference to the stats hash containing the bed intervals, which will be modified;
+A read that overlaps the target region by any number of bases (0=false; 1=true).
+
+ ---------------XXXXXXXXXXXX------------
+   0000000000
+           1111111111
+              1111111111111111
+                  11111111
+              1111111111111
+                               0000000000
+
+
+=head3 Arguments
+
+=over
+
+=item $chrom = the chromosome to which the read maps;
+
+=item $start = the leftmost start position;
+
+=item $mapped = the number of bases mapped;
+
+=item $bed = a reference to the bed hash;
+
+=item $stats = a reference to the stats hash containing the bed intervals, which will be modified;
+
+=back
+
+=head3 Returns
+
+1 if mapped to Target, 0 if not.
+Increments the following in the $stats hash, if encountered.
+
+=over
+
+=item C<bed> > C<intervals> > chromosome > index > C<hist> : adds number of mapped
+
+=back
 
 =cut
 
 sub onTarget {
     my ( $chrom, $start, $mapped, $stats ) = @_;
     my $onTarget = 0;
-
-######### WHAT IS AN ONTARGET READ
-#####---------------XXXXXXXXXXXX------------
-#####  0000000000
-#####          1111111111
-#####             1111111111111111
-#####                 11111111
-##### 					  1111111111111
-##### 								0000000000
 
     ## bed intervals are hash:array:hash
     ## get array of intervals from the current chromosome
@@ -437,21 +604,43 @@ sub onTarget {
     return $onTarget;
 }
 
+=for html <hr>
+
 =head2 addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)
 
 Adds fragments to the runningBaseCoverage collection.  Each fragment
-						is added to all positions to which the read maps.
-						This collection will be continuously process and cleared of all
-						positions that precede the current read start
+is added to all positions to which the read maps.
+This collection will be continuously process and cleared of all
+positions that precede the current read start
 
-Returns   : the number of positions to which the current fragment is stored/mapped
+=head3 Arguments
 
-Argument  :	$chrom = the chromosome to which the current read maps;
-						$start1 = the left-most start of the paired end reads;
-						$start2 = the right-most start of the paired end reads;
-						$cigar = the cigar string;
-						$strand = the strand to which the read maps;
-						$stats = a reference to the stats hash;
+=over
+
+=item $chrom = the chromosome to which the current read maps;
+
+=item $start1 = the left-most start of the paired end reads;
+
+=item $start2 = the right-most start of the paired end reads;
+
+=item $cigar = the cigar string;
+
+=item $strand = the strand to which the read maps;
+
+=item $stats = a reference to the stats hash;
+
+=back
+
+=head3 Returns
+
+The number of positions to which the current fragment is stored/mapped.
+Increments the following in the $stats hash, if encountered.
+
+=over
+
+=item C<runningBaseCoverage> > chromosome > start + mismatch/deletion offset > "$chrom\t$start1\t$start2"
+
+=back
 
 =cut
 
@@ -475,6 +664,8 @@ sub addRunningBaseCoverage {
     return $posOffset;
 }
 
+=for html <hr>
+
 =head2 runningBaseCoverage($stats,$chrom,$startpos)
 
 Calculates base coverage as a running total. This requires that the
@@ -485,12 +676,30 @@ Calculates base coverage as a running total. This requires that the
 						When a new mapping position is found, stats are generated on all
 						stored positions, and then the hash is cleared
 
-Returns   : The number of cleared positions from the runningBaseCoverage hash
+=head3 Arguments
 
-Argument  :	$stats = a reference to the stats hash, holding the runningBaseCoverage hash.  Other keys in the stats hash will be modified;
-						$chrom = the current chromosome, all recorded positions not on this chromosome will be processed and cleared.  If no value, then the whole hash is cleared;
-						$pos = the current position, all recorded positions on the current chromosome, before this position, will be cleared;
+=over
 
+=item $stats = a reference to the stats hash, holding the runningBaseCoverage hash.  Other keys in the stats hash will be modified;
+
+=item $chrom = the current chromosome, all recorded positions not on this chromosome will be processed and cleared.  If no value, then the whole hash is cleared;
+
+=item $pos = the current position, all recorded positions on the current chromosome, before this position, will be cleared;
+
+=back
+
+=head3 Returns
+
+The number of cleared positions from the runningBaseCoverage hash.
+Increments the following in the $stats hash, if encountered.
+
+=over
+
+=item C<collapsedCoverageHist> > index
+
+=item C<nonCollapsedCoverageHist> > index
+
+=back
 
 =cut
 
@@ -542,13 +751,23 @@ sub runningBaseCoverage {
     return $cleared_positions;
 }
 
+=for html <hr>
+
 =head2 HistStats(%val)
 
 Calculate the mean and standard deviation of insert sizes in a hash
 
-Returns   : mean and standard deviation of the insert sizes
+=head3 Arguments
 
-Argument  :	%val = a hash, with keys = insert size, values = count for each insert size
+=over
+
+=item %val = a hash, with keys = insert size, values = count for each insert size
+
+=back
+
+=head3 Returns
+
+Mean and standard deviation of the insert sizes.
 
 =cut
 
@@ -579,19 +798,43 @@ sub HistStats {
 
 }
 
+=for html <hr>
+
 =head2 insertMapping($tlen,$rnext,$hash,$p)
 
 Identifies the paired-end insert size as being within the normal
 						range, abnormally far, or on different chromosomes
 
-Returns   : A description of the insert mapping (normlInsertSize/
-						pairsMappedAbnormallyFar/ pairsMappedToDifferentChr).
-						Modifies the reference hash
+=head3 Arguments
 
-Argument  :	$tlen = template length;
-						$rnext = the chromosome of the other in the pair, = indicates the same;
-						$hash = reference to a hash collecting statistics;
-						$p = parameter hash;
+=over
+
+=item $tlen = template length;
+
+=item $rnext = the chromosome of the other in the pair, = indicates the same;
+
+=item $hash = reference to a hash collecting statistics;
+
+=item $p = parameter hash;
+
+=back
+
+=head3 Returns
+
+A description of the insert mapping.
+  Modifies the reference hash at the following key and returns a string, one of:
+
+=over
+
+=item "normalInsertSize" : if the template length is less than  "normalInsertMax" from $p
+
+Also stores the template length in the hash.
+
+=item "pairsMappedAbnormallyFar" : if the template length is longer than "normalInsertMax" from $p
+
+=item "pairsMappedToDifferentChr" : if the pair is mapped to a different chromosome
+
+=back
 
 =cut
 
@@ -616,13 +859,23 @@ sub insertMapping {
     return $class;
 }
 
+=for html <hr>
+
 =head2 load_json(@files)
 
 Open, decode, and store each JSON file in a hash with filename keys
 
-Returns   : a hash with filename keys > decoded JSON hash
+=head3 Arguments
 
-Argument  :	@files = a list of json file paths
+=over
+
+=item @files = a list of json file paths
+
+=back
+
+=head3 Returns
+
+A hash with basename(filename) keys > decoded JSON hash
 
 =cut
 
@@ -644,13 +897,24 @@ sub load_json {
     return %json_hash;
 }
 
+=for html <hr>
+
 =head2 toPhred($char)
 
 Convert a character to a phred score (ascii value - 33)
 
-Returns   : Phred score
 
-Argument  :	$char = the single character to convert
+=head3 Argument
+
+=over
+
+=item $char = the single character to convert
+
+=back
+
+=head3 Returns
+
+Phred score
 
 =cut
 
@@ -661,15 +925,160 @@ sub toPhred {
     return $ascii - $offset;
 }
 
+
+=for html <hr>
+
 =head2 generate_jsonHash($stats,$p)
 
 Transforms information in the stats hash to the appropriate keys and
-						values for the jsonHash
+values for the jsonHash.
 
-Returns   : The jsonHash, ready to print
+=over
 
-Argument  :	$stats = reference to the stats hash, where data is stored;
-						$p = reference to the parameters hash;
+=item "aligned bases"
+
+The (estimated) number of bases that are aligned. alignedCount + insertCount
+from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
+multiplied by the sampling rate (bamqc.pl).
+
+=item "average read length"
+
+Float. the average read length is the sum of observed bases
+(aligned + soft clipped + hard clipped + inserted) / # of mapped reads,
+multiplied by the sampling rate (bamqc.pl).
+
+=item "collapsed bases covered"
+
+Integer. See L</"runningBaseCoverage($stats,$chrom,$startpos)">
+
+=item "deleted bases"
+
+The (estimated) number of bases that are hard-clipped. deletionCount
+from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
+multiplied by the sampling rate (bamqc.pl).
+
+=item "hard clip bases"
+
+The (estimated) number of bases that are hard-clipped. hardClipCount
+from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
+multiplied by the sampling rate (bamqc.pl).
+
+=item "insert histogram"
+
+See L</"insertMapping($tlen,$rnext,$hash,$p)">. Or empty set {}
+
+=item "insert mean"
+
+Float. See L</"HistStats(%val)">. Float if exists or String "0". bamqc.pl
+
+=item "insert stdev"
+
+Float. See L</"HistStats(%val)">. Float if exists or String "0". bamqc.pl
+
+=item "inserted bases"
+
+The (estimated) number of bases that are inserted. insertionCount
+from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
+multiplied by the sampling rate (bamqc.pl).
+
+=item "mapped reads"
+
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=item "mate unmaped reads" [sic]
+
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=item "mismatch bases"
+
+=item "non collapsed bases covered"
+
+nonCollapsedCoverageHist
+
+=item "non primary reads"
+
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=item "number of ends"
+
+String. "paired end" if there are more than 0 properly paired reads, "single end" otherwise.
+
+=item "number of targets"
+
+=item "paired reads"
+
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=item "properly paired reads"
+
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=item "qual cut"
+
+=item "qual fail reads"
+
+=item "$read aligned by cycle"
+
+=item "$read average length"
+
+=item "$read deletion by cycle"
+
+=item "$read hard clip by cycle"
+
+=item "$read insertion by cycle"
+
+=item "$read length histogram"
+
+=item "$read mismatch by cycle"
+
+=item "$read quality by cycle"
+
+=item "$read quality histogram"
+
+=item "$read soft clip by cycle"
+
+=item "reads on target"
+
+=item "reads per start point"
+
+=item "soft clip bases"
+
+The (estimated) number of bases that are soft-clipped. softClipCount
+from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
+multiplied by the sampling rate.
+
+=item "target file"
+
+Path to the BED target file.
+
+=item "target size"
+
+The total sum of the target sizes from the target file. See L</"read_bed($file)">.
+Targets may be overlapping and so the target space could be higher than the
+actual footprint.
+
+=item "total reads"
+
+Integer. Total number of reads * 1.
+
+=item "unmapped reads"
+
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=head3 Arguments
+
+=over
+
+=item $stats = reference to the stats hash, where data is stored;
+
+=item $p = reference to the parameters hash;
+
+=back
+
+=head3 Returns
+
+The jsonHash, ready to print.
+
 
 =cut
 
@@ -752,14 +1161,23 @@ sub generate_jsonHash {
 
 }
 
+=for html <hr>
+
 =head2 generate_error_rate( $hash, $prefix )
 
 Compute the error rate with (mismatch+insertion+deletion)/aligned
 
-Returns   : A formatted percentage
+=head3 Returns   : A formatted percentage
 
-Argument  :	$hash = The hash containing the JSON file contents to analyse;
-						$prefix = A prefix to use when accessing the keys of hash;
+=head3 Arguments
+
+=over
+
+=item $hash = The hash containing the JSON file contents to analyse;
+
+=item $prefix = A prefix to use when accessing the keys of hash;
+
+=back
 
 =cut
 
@@ -770,14 +1188,23 @@ sub generate_error_rate {
         ["aligned"] );
 }
 
+=for html <hr>
+
 =head2 generate_mismatch_rate( $hash, $prefix )
 
 Compute the mismatch rate with mismatch/aligned
 
-Returns   : A formatted percentage
+=head3 Returns   : A formatted percentage
 
-Argument  :	$hash = The hash containing the JSON file contents to analyse;
-						$prefix = A prefix to use when accessing the keys of hash;
+=head3 Arguments
+
+=over
+
+=item $hash = The hash containing the JSON file contents to analyse;
+
+=item $prefix = A prefix to use when accessing the keys of hash;
+
+=back
 
 =cut
 
@@ -786,14 +1213,23 @@ sub generate_mismatch_rate {
     return generateRatePercent( $hash, $prefix, ["mismatch"], ["aligned"] );
 }
 
+=for html <hr>
+
 =head2 generate_indel_rate( $hash, $prefix )
 
 Compute the indel rate with (insertion+deletion)/aligned
 
-Returns   : A formatted percentage
+=head3 Returns   : A formatted percentage
 
-Argument  :	$hash = The hash containing the JSON file contents to analyse;
-						$prefix = A prefix to use when accessing the keys of hash;
+=head3 Arguments
+
+=over
+
+=item $hash = The hash containing the JSON file contents to analyse;
+
+=item  $prefix = A prefix to use when accessing the keys of hash;
+
+=back
 
 =cut
 
@@ -803,14 +1239,23 @@ sub generate_indel_rate {
         ["aligned"] );
 }
 
+=for html <hr>
+
 =head2 generate_softclip_rate( $hash, $prefix )
 
 Compute the softclip rate with soft clip/(soft clip + aligned)
 
-Returns   : A formatted percentage
+=head3 Returns   : A formatted percentage
 
-Argument  :	$hash = The hash containing the JSON file contents to analyse;
-						$prefix = A prefix to use when accessing the keys of hash;
+=head3 Arguments
+
+=over
+
+=item $hash = The hash containing the JSON file contents to analyse;
+
+=item $prefix = A prefix to use when accessing the keys of hash;
+
+=back
 
 =cut
 
@@ -820,14 +1265,23 @@ sub generate_softclip_rate {
         [ "soft clip", "aligned" ] );
 }
 
+=for html <hr>
+
 =head2 generate_hardclip_rate( $hash, $prefix )
 
 Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)
 
-Returns   : A formatted percentage
+=head3 Returns   : A formatted percentage
 
-Argument  :	$hash = The hash containing the JSON file contents to analyse;
-						$prefix = A prefix to use when accessing the keys of hash;
+=head3 Arguments
+
+=over
+
+=item $hash = The hash containing the JSON file contents to analyse;
+
+=item $prefix = A prefix to use when accessing the keys of hash;
+
+=back
 
 =cut
 
@@ -837,13 +1291,22 @@ sub generate_hardclip_rate {
         [ "soft clip", "aligned", "hard clip" ] );
 }
 
+
+=for html <hr>
+
 =head2 get_barcode( $jsonHash)
 
 Get the sequencing index / barcode
 
-Returns   : the barcode if it exists; otherwise 'NoIndex'
+=head3 Returns   : the barcode if it exists; otherwise 'NoIndex'
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -852,14 +1315,21 @@ sub get_barcode {
     return exists $jsonHash->{barcode} ? $jsonHash->{barcode} : 'NoIndex';
 }
 
+=for html <hr>
+
 =head2 get_group( $jsonHash)
 
 Get the group id and group id description
 
-Returns   : the group id and group id description separated by a space, if they
-						exist. If they don't exist, then 'na'
+=head3 Returns : the group id and group id description separated by a space, if they exist. If they don't exist, then 'na'
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -873,13 +1343,21 @@ sub get_group {
       : "na";
 }
 
+=for html <hr>
+
 =head2 get_raw_reads( $jsonHash)
 
 Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
 
-Returns   : the total number of reads (int)
+=head3 Returns   : the total number of reads (int)
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -891,13 +1369,21 @@ sub get_raw_reads {
           $jsonHash->{"qual fail reads"} );
 }
 
+=for html <hr>
+
 =head2 get_raw_yield( $jsonHash)
 
 Get the total raw yield, multipying get_raw_reads by the average read length
 
-Returns   : the total yield (int)
+=head3 Returns   : the total yield (int)
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -906,15 +1392,24 @@ sub get_raw_yield {
     return int( get_raw_reads($jsonHash) * $jsonHash->{"average read length"} );
 }
 
+
+=for html <hr>
+
 =head2 get_map_percent( $jsonHash)
 
 Get the total map percentage, calculated by dividing mapped reads by
 						total number of reads and multiplying by 100. If total reads is 0,
 						treat as 1.
 
-Returns   : the map percentage as an integer
+=head3 Returns   : the map percentage as an integer
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -924,15 +1419,24 @@ sub get_map_percent {
       ( $jsonHash->{"mapped reads"} / ( get_raw_reads($jsonHash) || 1 ) );
 }
 
+
+=for html <hr>
+
 =head2 get_ontarget_percent( $jsonHash)
 
 Get the total on target percentage by dividing reads on target by
 						the number of mapped reads, and multiplying by 100. If mapped reads
 						is 0, treat as 1.
 
-Returns   : the on target percentage as an integer
+=head3 Returns   : the on target percentage as an integer
 
-Argument  :	$jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -943,16 +1447,25 @@ sub get_ontarget_percent {
       ;    # $rawReads) * 100;   # could argue using this either way
 }
 
+=for html <hr>
+
 =head2 get_est_yield( $jsonHash)
 
 Get the estimated total yield by multiplying total aligned based by
 						the on target percentage, and dividing that by reads per start point.
 						If reads per start point is is 0, treat as 1.
 
-Returns   : the estimated yield as an integer
+=head3 Returns   : the estimated yield as an integer
 
-Argument  :	$collapse = whether to use reads per start point to collapse down the coverage;
-            $jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Arguments
+
+=over
+
+=item $collapse = whether to use reads per start point to collapse down the coverage;
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -968,16 +1481,25 @@ sub get_est_yield {
           $denom );
 }
 
+=for html <hr>
+
 =head2 get_est_coverage( $jsonHash)
 
 Get the estimated total coverage by dividing estimated yield by
 						the target size.
 						If the target is is 0, treat as 1.
 
-Returns   : the estimated coverage as an integer
+=head3 Returns   : the estimated coverage as an integer
 
-Argument  :	$collapse = whether to use reads per start point to collapse down the coverage;
-            $jsonHash = The hash containing the JSON file contents to analyse.
+=head3 Argument
+
+=over
+
+=item $collapse = whether to use reads per start point to collapse down the coverage;
+
+=item $jsonHash = The hash containing the JSON file contents to analyse.
+
+=back
 
 =cut
 
@@ -986,6 +1508,73 @@ sub get_est_coverage {
     return get_est_yield( $jsonHash, $collapse ) /
       ( $jsonHash->{"target size"} || 1 );
 }
+
+=for html <hr>
+
+=head2 findStart($cigarOp, $start)
+
+Find the start index of the read using the cigar string
+
+=head3 Returns   : the new start position, adjusted to take soft clipping into account
+
+=head3 Argument  :	$cigarOp = the cigar string
+
+=cut
+
+sub findStart {
+    my @cigarOp = @{ $_[0] };
+    my $start   = $_[1];
+
+    if ( $cigarOp[0] =~
+        /(.*)S/ )  # if first cigar operation is a soft clip, adjust start point
+    {
+        $start -= $1;
+    }
+
+    return $start;
+}
+
+=for html <hr>
+
+=head2 findEnd($cigarOp, $end)
+
+Find the start index of the read using the cigar string
+
+=head3 Returns   : the new start position, adjusted to take soft clipping into account
+
+=head3 Arguments
+
+=over
+
+=item $cigarOp = the cigar string;
+
+=item $end = the assumed end of the string;
+
+=back
+
+=cut
+
+sub findEnd {
+    my @cigarOp = @{ $_[0] };
+    my $end     = $_[1];
+    if ( $cigarOp[0] =~ /(.*)S/ )
+    {    # if first cigar operation is a soft clip, adjust start point
+        $end -= $1;
+    }
+    foreach my $cig (@cigarOp) {
+        if ( $cig =~ /(.*)S/ ) {
+            $end += $1;
+        }
+        elsif ( $cig =~ /(.*)M/ ) {
+            $end += $1;
+        }
+        elsif ( $cig =~ /(.*)D/ ) {
+            $end += $1;
+        }
+    }
+    return $end;
+}
+
 
 ##################### INTERNAL Subroutines ##############################
 ##get_est_yield
@@ -1059,60 +1648,7 @@ sub generateRatePercent {
     return $numerator * 100.0 / ( $denominator || 1 );
 }
 
-=head2 findStart($cigarOp, $start)
 
-Find the start index of the read using the cigar string
-
-Returns   : the new start position, adjusted to take soft clipping into account
-
-Argument  :	$cigarOp = the cigar string
-
-=cut
-
-sub findStart {
-    my @cigarOp = @{ $_[0] };
-    my $start   = $_[1];
-
-    if ( $cigarOp[0] =~
-        /(.*)S/ )  # if first cigar operation is a soft clip, adjust start point
-    {
-        $start -= $1;
-    }
-
-    return $start;
-}
-
-=head2 findEnd($cigarOp, $end)
-
-Find the start index of the read using the cigar string
-
-Returns   : the new start position, adjusted to take soft clipping into account
-
-Argument  :	$cigarOp = the cigar string;
-						$end = the assumed end of the string;
-
-=cut
-
-sub findEnd {
-    my @cigarOp = @{ $_[0] };
-    my $end     = $_[1];
-    if ( $cigarOp[0] =~ /(.*)S/ )
-    {    # if first cigar operation is a soft clip, adjust start point
-        $end -= $1;
-    }
-    foreach my $cig (@cigarOp) {
-        if ( $cig =~ /(.*)S/ ) {
-            $end += $1;
-        }
-        elsif ( $cig =~ /(.*)M/ ) {
-            $end += $1;
-        }
-        elsif ( $cig =~ /(.*)D/ ) {
-            $end += $1;
-        }
-    }
-    return $end;
-}
 
 sub byCycleToCount {
     my $histRef = $_[0];
@@ -1127,5 +1663,15 @@ sub byCycleToCount {
 }
 
 ######################## END INTERNAL Subroutines########################
+
+# close the main container
+=begin html
+
+</div>
+</div>
+</div>
+
+=end html
+
 
 1;
