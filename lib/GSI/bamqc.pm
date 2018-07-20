@@ -969,11 +969,11 @@ See L</"insertMapping($tlen,$rnext,$hash,$p)">. Or empty set {}
 
 =item "insert mean"
 
-Float. See L</"HistStats(%val)">. Float if exists or String "0". bamqc.pl
+Float. See L</"HistStats(%val)">. Float if exists or String "0" (bamqc.pl).
 
 =item "insert stdev"
 
-Float. See L</"HistStats(%val)">. Float if exists or String "0". bamqc.pl
+Float. See L</"HistStats(%val)">. Float if exists or String "0" (bamqc.pl).
 
 =item "inserted bases"
 
@@ -983,11 +983,14 @@ multiplied by the sampling rate (bamqc.pl).
 
 =item "mapped reads"
 
-Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+Integer. A read is considered mapped if it does not have flags: non-primary
+(256) or unmapped (4), or fell below the quality cutoff.
+See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
 =item "mate unmaped reads" [sic]
 
-Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+Integer. A mate is considered unmapped if it has the flags: paired (1) and mate unmapped (8).
+See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
 =item "mismatch bases"
 
@@ -1007,27 +1010,44 @@ String. "paired end" if there are more than 0 properly paired reads, "single end
 
 =item "paired reads"
 
-Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+Integer. A read is considered paired if it is a mapped read and has sam flag:
+paired (1). See L</"assess_flag($flag,$stats,$qual,$qcut)">.
 
 =item "properly paired reads"
 
-Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+Integer. A read is considered properly paired if it is a mapped read and has sam
+flag: properly paired (2). See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
 =item "qual cut"
 
+Integer. Quality cutoff for reads. Supplied to bamqc.pl by -q or default 30.
+
 =item "qual fail reads"
 
+Integer. A read is considered qual fail if it falls below the quality cutoff,
+supplied by -q. Default 30. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
 =item "$read aligned by cycle"
+
+List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
 
 =item "$read average length"
 
 =item "$read deletion by cycle"
 
+List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
+
 =item "$read hard clip by cycle"
+
+List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
 
 =item "$read insertion by cycle"
 
+List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
+
 =item "$read length histogram"
+
+List. (bamqc.pl)
 
 =item "$read mismatch by cycle"
 
@@ -1036,6 +1056,8 @@ Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
 =item "$read quality histogram"
 
 =item "$read soft clip by cycle"
+
+List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
 
 =item "reads on target"
 

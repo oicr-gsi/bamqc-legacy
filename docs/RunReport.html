@@ -1,0 +1,155 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<link rel="stylesheet" href="css/skeleton.css" type="text/css" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>RunReport - Use the JSON produced by GSI::bamqc to generate an HTML page</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use GSI::RunReport;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<h1 id="USAGE">USAGE</h1>
+
+<p>use SeqWare::Html;</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Genome Sequence Informatics Ontario Institute for Cancer Research https://github.com/oicr-gsi</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright (C) 2017 The Ontario Institute for Cancer Research</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+
+<p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
+
+<p>You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>perl(1).</p>
+
+<h2 id="get_possible_headers">get_possible_headers()</h2>
+
+<pre><code>  Returns the headers that the RunReport supports, mapped to their human-friendly
+  name. The keys in this hash are used by the various reporting methods to create
+  their tables. In order to get tables to print different sets of headers
+  change the parameter passed in: p{table_columns}{data|graph|tsv}.
+
+  Returns: a hash mapping shortnames to human-friendly names for the table header</code></pre>
+
+<h2 id="get_possible_plot_names">get_possible_plot_names()</h2>
+
+<pre><code>  Returns the image short names that the RunReport supports, mapped to their
+  actual PNG filename. The keys in this hash are used by the various reporting
+  methods to create their tables. In order to get tables to print different sets of headers
+  change the parameter passed in: p{plotnames}.
+
+  Returns: a hash mapping shortnames to plot filenames for the table header</code></pre>
+
+<h2 id="plot_data-jsonHash-scriptPath">plot_data($jsonHash,$scriptPath)</h2>
+
+<pre><code>  Creates the graphs for the report using jsonToGraphs.pl in the same directory
+  as each JSON file.
+
+  Arguments: $jsonHash = The hash containing the JSON file contents to analyse;
+             $scriptPath = the directory where jsonToGraphs.pl is located.</code></pre>
+
+<h2 id="data_table-p-jsonHash-sorted_lane_list-run">data_table($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<pre><code>  Returns the HTML for the main metrics table.
+
+  Arguments: $p=parameters used for the data_table. Required keys:
+                $p-&gt;{table_columns}{data}-the ordered array of shortname for the header
+                $p-&gt;{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the main metrics table.
+
+  See: get_possible_headers</code></pre>
+
+<h2 id="coverage_table-p-jsonHash-sorted_lane_list-run">coverage_table($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<pre><code>  Returns the HTML for the coverage table.
+
+  Arguments: $p=parameters used for the coverage_table. Required keys:
+                $p-&gt;{coverageXs}-an array with the N X values to report for coverage
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the coverage table.</code></pre>
+
+<h2 id="graph_table-p-jsonHash-sorted_lane_list-run">graph_table($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<pre><code>  Returns the HTML for the graph table. Note that this does not do the graphing.
+  plot_data must be called to generate graphs.
+
+  Arguments: $p=parameters used for the graph_table. Required keys:
+                  $p-&gt;{table_columns}{graph}-the ordered array of shortname for the header
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the graph table.
+
+  See: plot_data, get_possible_headers</code></pre>
+
+<h2 id="lane_info-p-jsonHash-sorted_lane_list-run">lane_info($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<pre><code>  Returns the HTML for the target block.
+
+  Arguments: $p=parameters used for the graph_table. Required keys:
+                  $p-&gt;{table_columns}{graph}-the ordered array of shortname for the graph table header
+                  $p-&gt;{printAllImages}-whether or not to print all of the images in large
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML for the lane block.
+
+  See: get_possible_headers</code></pre>
+
+<h2 id="write_tsv-p-jsonHash-sorted_lane_list-run">write_tsv($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<pre><code>  Writes a TSV with all &quot;data_table&quot; metrics plus the information from
+  &quot;lane_info&quot;. Arbitrarily picks the last JSON file&#39;s directory to write the
+  TSV into.
+
+  Arguments: $p=parameters used for the data_table. Required keys:
+                $p-&gt;{table_columns}{tsv}-the ordered array of shortname for the header
+             $jsonHash=A hash containing the JSON files contents to analyse;
+             $sorted_lane_list=the list of json files in sorted lane order;
+             $run=the name of the sequencer run.
+
+  Returns: the HTML pointing to the TSV file
+
+  See: get_possible_headers</code></pre>
+
+
+</body>
+
+</html>
+
+

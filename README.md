@@ -36,6 +36,11 @@ To generate this documentation:
     pod2text lib/GSI/bamqc.pm > man/GSI__bamqc
     pod2text lib/GSI/RunReport.pm > man/GSI__RunReport
 
+For the html pages:
+
+    pod2html --css css/skeleton.css lib/GSI/bamqc.pm --noindex > docs/bamqc.html
+    pod2html --css css/skeleton.css lib/GSI/RunReport.pm --noindex > docs/RunReport.html
+
 
 ## Bedtools histogram files
 
