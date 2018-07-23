@@ -41,9 +41,13 @@ sub new {
 
 =head2 NAME
 
-bamqc - Generate quality control statistics from BAM files
+bamqc
 
 =head2 SYNOPSIS
+
+Generate quality control statistics from BAM files. This library's whole function
+is to get enough information to feed to L</"generate_jsonHash($stats,$p)"> and
+produce a JSON file with lots and lots of information about the BAM file.
 
   use GSI::bamqc;
 
@@ -237,6 +241,8 @@ sub assess_start_point {
 
 
 =for html <hr>
+
+=back
 
 =head2 read_bed($file)
 
@@ -1000,13 +1006,16 @@ nonCollapsedCoverageHist
 
 =item "non primary reads"
 
-Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">.
 
 =item "number of ends"
 
 String. "paired end" if there are more than 0 properly paired reads, "single end" otherwise.
 
 =item "number of targets"
+
+Integer. Set in L</"read_bed($file)">. Corresponds to number of lines in the BED
+file.
 
 =item "paired reads"
 
@@ -1047,13 +1056,20 @@ List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
 
 =item "$read length histogram"
 
-List. (bamqc.pl)
+Hash. Contains buckets for every read length (bamqc.pl).
 
 =item "$read mismatch by cycle"
 
+Hash. Searches for "MD:Z:*" string and passes it to
+L</"md_stats($R,$mdstring,$strand,$stats)">.
+
 =item "$read quality by cycle"
 
+Hash. (bamqc.pl).
+
 =item "$read quality histogram"
+
+Hash. (bamqc.pl).
 
 =item "$read soft clip by cycle"
 
@@ -1061,7 +1077,11 @@ List. See L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">.
 
 =item "reads on target"
 
+Integer. Incremented if L</"onTarget($chrom,$start,$mapped,$stats)"> in bamqc.pl.
+
 =item "reads per start point"
+
+Float. See L</"assess_start_point($chrom,$s1,$s2,$sphash)">.
 
 =item "soft clip bases"
 
@@ -1086,6 +1106,8 @@ Integer. Total number of reads * 1.
 =item "unmapped reads"
 
 Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
+
+=back
 
 =head3 Arguments
 
@@ -1189,8 +1211,6 @@ sub generate_jsonHash {
 
 Compute the error rate with (mismatch+insertion+deletion)/aligned
 
-=head3 Returns   : A formatted percentage
-
 =head3 Arguments
 
 =over
@@ -1200,6 +1220,10 @@ Compute the error rate with (mismatch+insertion+deletion)/aligned
 =item $prefix = A prefix to use when accessing the keys of hash;
 
 =back
+
+=head3 Returns
+
+A formatted percentage
 
 =cut
 
@@ -1216,8 +1240,6 @@ sub generate_error_rate {
 
 Compute the mismatch rate with mismatch/aligned
 
-=head3 Returns   : A formatted percentage
-
 =head3 Arguments
 
 =over
@@ -1227,6 +1249,10 @@ Compute the mismatch rate with mismatch/aligned
 =item $prefix = A prefix to use when accessing the keys of hash;
 
 =back
+
+=head3 Returns
+
+A formatted percentage
 
 =cut
 
@@ -1241,8 +1267,6 @@ sub generate_mismatch_rate {
 
 Compute the indel rate with (insertion+deletion)/aligned
 
-=head3 Returns   : A formatted percentage
-
 =head3 Arguments
 
 =over
@@ -1252,6 +1276,10 @@ Compute the indel rate with (insertion+deletion)/aligned
 =item  $prefix = A prefix to use when accessing the keys of hash;
 
 =back
+
+=head3 Returns
+
+A formatted percentage
 
 =cut
 
@@ -1267,8 +1295,6 @@ sub generate_indel_rate {
 
 Compute the softclip rate with soft clip/(soft clip + aligned)
 
-=head3 Returns   : A formatted percentage
-
 =head3 Arguments
 
 =over
@@ -1278,6 +1304,10 @@ Compute the softclip rate with soft clip/(soft clip + aligned)
 =item $prefix = A prefix to use when accessing the keys of hash;
 
 =back
+
+=head3 Returns
+
+A formatted percentage
 
 =cut
 
@@ -1293,8 +1323,6 @@ sub generate_softclip_rate {
 
 Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)
 
-=head3 Returns   : A formatted percentage
-
 =head3 Arguments
 
 =over
@@ -1304,6 +1332,10 @@ Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)
 =item $prefix = A prefix to use when accessing the keys of hash;
 
 =back
+
+=head3 Returns
+
+A formatted percentage
 
 =cut
 
@@ -1320,8 +1352,6 @@ sub generate_hardclip_rate {
 
 Get the sequencing index / barcode
 
-=head3 Returns   : the barcode if it exists; otherwise 'NoIndex'
-
 =head3 Arguments
 
 =over
@@ -1329,6 +1359,10 @@ Get the sequencing index / barcode
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The barcode if it exists; otherwise 'NoIndex'
 
 =cut
 
@@ -1343,8 +1377,6 @@ sub get_barcode {
 
 Get the group id and group id description
 
-=head3 Returns : the group id and group id description separated by a space, if they exist. If they don't exist, then 'na'
-
 =head3 Arguments
 
 =over
@@ -1352,6 +1384,12 @@ Get the group id and group id description
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The group id and group id description separated by a space, if they exist.
+If they don't exist, then 'na'.
+
 
 =cut
 
@@ -1371,8 +1409,6 @@ sub get_group {
 
 Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
 
-=head3 Returns   : the total number of reads (int)
-
 =head3 Arguments
 
 =over
@@ -1380,6 +1416,10 @@ Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The total number of reads (int).
 
 =cut
 
@@ -1397,8 +1437,6 @@ sub get_raw_reads {
 
 Get the total raw yield, multipying get_raw_reads by the average read length
 
-=head3 Returns   : the total yield (int)
-
 =head3 Arguments
 
 =over
@@ -1406,6 +1444,10 @@ Get the total raw yield, multipying get_raw_reads by the average read length
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The total yield (int).
 
 =cut
 
@@ -1423,8 +1465,6 @@ Get the total map percentage, calculated by dividing mapped reads by
 						total number of reads and multiplying by 100. If total reads is 0,
 						treat as 1.
 
-=head3 Returns   : the map percentage as an integer
-
 =head3 Arguments
 
 =over
@@ -1432,6 +1472,10 @@ Get the total map percentage, calculated by dividing mapped reads by
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The map percentage as an integer.
 
 =cut
 
@@ -1450,8 +1494,6 @@ Get the total on target percentage by dividing reads on target by
 						the number of mapped reads, and multiplying by 100. If mapped reads
 						is 0, treat as 1.
 
-=head3 Returns   : the on target percentage as an integer
-
 =head3 Arguments
 
 =over
@@ -1459,6 +1501,10 @@ Get the total on target percentage by dividing reads on target by
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The on target percentage as an integer
 
 =cut
 
@@ -1477,8 +1523,6 @@ Get the estimated total yield by multiplying total aligned based by
 						the on target percentage, and dividing that by reads per start point.
 						If reads per start point is is 0, treat as 1.
 
-=head3 Returns   : the estimated yield as an integer
-
 =head3 Arguments
 
 =over
@@ -1488,6 +1532,10 @@ Get the estimated total yield by multiplying total aligned based by
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The estimated yield as an integer
 
 =cut
 
@@ -1511,8 +1559,6 @@ Get the estimated total coverage by dividing estimated yield by
 						the target size.
 						If the target is is 0, treat as 1.
 
-=head3 Returns   : the estimated coverage as an integer
-
 =head3 Argument
 
 =over
@@ -1522,6 +1568,10 @@ Get the estimated total coverage by dividing estimated yield by
 =item $jsonHash = The hash containing the JSON file contents to analyse.
 
 =back
+
+=head3 Returns
+
+The estimated coverage as an integer.
 
 =cut
 
@@ -1537,9 +1587,17 @@ sub get_est_coverage {
 
 Find the start index of the read using the cigar string
 
-=head3 Returns   : the new start position, adjusted to take soft clipping into account
+=head3 Argument
 
-=head3 Argument  :	$cigarOp = the cigar string
+=over
+
+=item $cigarOp = the cigar string
+
+=back
+
+=head3 Returns
+
+The new start position, adjusted to take soft clipping into account
 
 =cut
 
@@ -1562,8 +1620,6 @@ sub findStart {
 
 Find the start index of the read using the cigar string
 
-=head3 Returns   : the new start position, adjusted to take soft clipping into account
-
 =head3 Arguments
 
 =over
@@ -1573,6 +1629,10 @@ Find the start index of the read using the cigar string
 =item $end = the assumed end of the string;
 
 =back
+
+=head3 Returns
+
+The new start position, adjusted to take soft clipping into account
 
 =cut
 
