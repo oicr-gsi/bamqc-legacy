@@ -38,8 +38,8 @@ To generate this documentation:
 
 For the html pages:
 
-    pod2html --css css/skeleton.css lib/GSI/bamqc.pm --noindex > docs/bamqc.html
-    pod2html --css css/skeleton.css lib/GSI/RunReport.pm --noindex > docs/RunReport.html
+    pod2html --css css/style.css lib/GSI/bamqc.pm --index > docs/bamqc.html
+    pod2html --css css/style.css lib/GSI/RunReport.pm --index > docs/RunReport.html
 
 
 ## Bedtools histogram files
