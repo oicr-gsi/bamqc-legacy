@@ -31,31 +31,35 @@ sub new {
 
 =begin html
 
-<div class="container">
-    <div class="row">
-      <div class="column" style="margin-top: 25%">
+<label for="show-menu" class="show-menu">Show Menu</label>
+<input type="checkbox" id="show-menu" role="button">
+
+<h1>Genome Sequence Informatics</h1>
 
 =end html
 
-=head1 General Information
+
+=head1 BamQC
 
 =head2 NAME
 
-bamqc
+bamqc - Generate quality control statistics from BAM files.
 
 =head2 SYNOPSIS
 
-Generate quality control statistics from BAM files. This library's whole function
+  use GSI::bamqc;
+
+=head2 DESCRIPTION
+
+This library's whole function
 is to get enough information to feed to L</"generate_jsonHash($stats,$p)"> and
 produce a JSON file with lots and lots of information about the BAM file.
 
-  use GSI::bamqc;
-
 =head2 AUTHOR
 
-Genome Sequence Informatics
-Ontario Institute for Cancer Research
-https://github.com/oicr-gsi
+L<Genome Sequence Informatics|https://gsi.oicr.on.ca>,
+L<Ontario Institute for Cancer Research|https://oicr.on.ca>.
+On Github at L<https://github.com/oicr-gsi/bamqc>.
 
 =head2 COPYRIGHT
 
@@ -98,7 +102,7 @@ my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
 Assesses the sam flag and stores information in the $stats reference hash
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -112,7 +116,7 @@ Assesses the sam flag and stores information in the $stats reference hash
 
 =back
 
-=head3 Returns
+B<Returns>
 
 1 if the read is mapped, 0 if not (modifies $stats with statuses).
 The following labels will be incremented in $stats if found.
@@ -179,7 +183,7 @@ being properly sorted.
 Reads per start point is recalculated when the leftstart changes from the previous record
 
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -194,7 +198,7 @@ Reads per start point is recalculated when the leftstart changes from the previo
 =back
 
 
-=head3 Returns
+B<Returns>
 
 A revised StartPoint $sphash hash, with updated stats:
 
@@ -250,7 +254,7 @@ Reads in a bed file, storing in C<intervals> in an array of hashes
 indicating, Start/Stop and size
 
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -258,7 +262,7 @@ indicating, Start/Stop and size
 
 =back
 
-=head3 Errors
+B<Errors>
 
 =over
 
@@ -268,7 +272,7 @@ indicating, Start/Stop and size
 
 =back
 
-=head3 Returns
+B<Returns>
 
 Hash structure containing the bed intervals
 
@@ -331,7 +335,7 @@ Processes the cigarString by breaking into pieces and assessing how
 the read is mapped to the reference
 
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -353,7 +357,7 @@ the read is mapped to the reference
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A list with two values, $readLength and $mappedBases. Increments $stats with values:
 
@@ -373,7 +377,7 @@ A list with two values, $readLength and $mappedBases. Increments $stats with val
 
 =back
 
-=head3 Errors
+B<Errors>
 
 =over
 
@@ -462,7 +466,7 @@ sub cigar_stats {
 Processes the MD:Z tag in the SAM.
 
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -476,7 +480,7 @@ Processes the MD:Z tag in the SAM.
 
 =back
 
-=head3 Return
+B<Returns>
 
 The number of mismatches defined by the MD string.
 Increments the following in the $stats hash, if encountered.
@@ -532,7 +536,7 @@ Determines if the read overlaps to any degree intervals contained
 						within the bedfile record.  The bedfile record is modified to
 						indicated mapping to this interval. One read may map to multiple intervals.
 
-=head3 What is an on-target read?
+B<What is an on-target read?>
 
 A read that overlaps the target region by any number of bases (0=false; 1=true).
 
@@ -545,7 +549,7 @@ A read that overlaps the target region by any number of bases (0=false; 1=true).
                                0000000000
 
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -561,7 +565,7 @@ A read that overlaps the target region by any number of bases (0=false; 1=true).
 
 =back
 
-=head3 Returns
+B<Returns>
 
 1 if mapped to Target, 0 if not.
 Increments the following in the $stats hash, if encountered.
@@ -619,7 +623,7 @@ is added to all positions to which the read maps.
 This collection will be continuously process and cleared of all
 positions that precede the current read start
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -637,7 +641,7 @@ positions that precede the current read start
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The number of positions to which the current fragment is stored/mapped.
 Increments the following in the $stats hash, if encountered.
@@ -682,7 +686,7 @@ Calculates base coverage as a running total. This requires that the
 						When a new mapping position is found, stats are generated on all
 						stored positions, and then the hash is cleared
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -694,7 +698,7 @@ Calculates base coverage as a running total. This requires that the
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The number of cleared positions from the runningBaseCoverage hash.
 Increments the following in the $stats hash, if encountered.
@@ -763,7 +767,7 @@ sub runningBaseCoverage {
 
 Calculate the mean and standard deviation of insert sizes in a hash
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -771,7 +775,7 @@ Calculate the mean and standard deviation of insert sizes in a hash
 
 =back
 
-=head3 Returns
+B<Returns>
 
 Mean and standard deviation of the insert sizes.
 
@@ -811,7 +815,7 @@ sub HistStats {
 Identifies the paired-end insert size as being within the normal
 						range, abnormally far, or on different chromosomes
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -825,7 +829,7 @@ Identifies the paired-end insert size as being within the normal
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A description of the insert mapping.
   Modifies the reference hash at the following key and returns a string, one of:
@@ -871,7 +875,7 @@ sub insertMapping {
 
 Open, decode, and store each JSON file in a hash with filename keys
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -879,7 +883,7 @@ Open, decode, and store each JSON file in a hash with filename keys
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A hash with basename(filename) keys > decoded JSON hash
 
@@ -910,7 +914,7 @@ sub load_json {
 Convert a character to a phred score (ascii value - 33)
 
 
-=head3 Argument
+B<Arguments>
 
 =over
 
@@ -918,7 +922,7 @@ Convert a character to a phred score (ascii value - 33)
 
 =back
 
-=head3 Returns
+B<Returns>
 
 Phred score
 
@@ -1109,7 +1113,7 @@ Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
 =back
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1119,7 +1123,7 @@ Integer. See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The jsonHash, ready to print.
 
@@ -1211,7 +1215,7 @@ sub generate_jsonHash {
 
 Compute the error rate with (mismatch+insertion+deletion)/aligned
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1221,7 +1225,7 @@ Compute the error rate with (mismatch+insertion+deletion)/aligned
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A formatted percentage
 
@@ -1240,7 +1244,7 @@ sub generate_error_rate {
 
 Compute the mismatch rate with mismatch/aligned
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1250,7 +1254,7 @@ Compute the mismatch rate with mismatch/aligned
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A formatted percentage
 
@@ -1267,7 +1271,7 @@ sub generate_mismatch_rate {
 
 Compute the indel rate with (insertion+deletion)/aligned
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1277,7 +1281,7 @@ Compute the indel rate with (insertion+deletion)/aligned
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A formatted percentage
 
@@ -1295,7 +1299,7 @@ sub generate_indel_rate {
 
 Compute the softclip rate with soft clip/(soft clip + aligned)
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1305,7 +1309,7 @@ Compute the softclip rate with soft clip/(soft clip + aligned)
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A formatted percentage
 
@@ -1323,7 +1327,7 @@ sub generate_softclip_rate {
 
 Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1333,7 +1337,7 @@ Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A formatted percentage
 
@@ -1352,7 +1356,7 @@ sub generate_hardclip_rate {
 
 Get the sequencing index / barcode
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1360,7 +1364,7 @@ Get the sequencing index / barcode
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The barcode if it exists; otherwise 'NoIndex'
 
@@ -1377,7 +1381,7 @@ sub get_barcode {
 
 Get the group id and group id description
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1385,7 +1389,7 @@ Get the group id and group id description
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The group id and group id description separated by a space, if they exist.
 If they don't exist, then 'na'.
@@ -1409,7 +1413,7 @@ sub get_group {
 
 Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1417,7 +1421,7 @@ Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The total number of reads (int).
 
@@ -1437,7 +1441,7 @@ sub get_raw_reads {
 
 Get the total raw yield, multipying get_raw_reads by the average read length
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1445,7 +1449,7 @@ Get the total raw yield, multipying get_raw_reads by the average read length
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The total yield (int).
 
@@ -1465,7 +1469,7 @@ Get the total map percentage, calculated by dividing mapped reads by
 						total number of reads and multiplying by 100. If total reads is 0,
 						treat as 1.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1473,7 +1477,7 @@ Get the total map percentage, calculated by dividing mapped reads by
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The map percentage as an integer.
 
@@ -1494,7 +1498,7 @@ Get the total on target percentage by dividing reads on target by
 						the number of mapped reads, and multiplying by 100. If mapped reads
 						is 0, treat as 1.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1502,7 +1506,7 @@ Get the total on target percentage by dividing reads on target by
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The on target percentage as an integer
 
@@ -1523,7 +1527,7 @@ Get the estimated total yield by multiplying total aligned based by
 						the on target percentage, and dividing that by reads per start point.
 						If reads per start point is is 0, treat as 1.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1533,7 +1537,7 @@ Get the estimated total yield by multiplying total aligned based by
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The estimated yield as an integer
 
@@ -1559,7 +1563,7 @@ Get the estimated total coverage by dividing estimated yield by
 						the target size.
 						If the target is is 0, treat as 1.
 
-=head3 Argument
+B<Arguments>
 
 =over
 
@@ -1569,7 +1573,7 @@ Get the estimated total coverage by dividing estimated yield by
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The estimated coverage as an integer.
 
@@ -1587,7 +1591,7 @@ sub get_est_coverage {
 
 Find the start index of the read using the cigar string
 
-=head3 Argument
+B<Arguments>
 
 =over
 
@@ -1595,7 +1599,7 @@ Find the start index of the read using the cigar string
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The new start position, adjusted to take soft clipping into account
 
@@ -1620,7 +1624,7 @@ sub findStart {
 
 Find the start index of the read using the cigar string
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1630,7 +1634,7 @@ Find the start index of the read using the cigar string
 
 =back
 
-=head3 Returns
+B<Returns>
 
 The new start position, adjusted to take soft clipping into account
 
@@ -1680,10 +1684,10 @@ sub procCigar {
 }
 
 ## INTERNAL procMD()
-## Arguments
+## Arguments>
 ##	$md : the mdstring
 ##  $strand : the strand to which the read maps
-## Returns : an array of mdstring pieces
+## Returns> : an array of mdstring pieces
 ## Descriptions : breaks the mdstring into pieces, accounting for strand
 sub procMD {
     my ( $md, $strand ) = @_;
@@ -1745,15 +1749,5 @@ sub byCycleToCount {
 }
 
 ######################## END INTERNAL Subroutines########################
-
-# close the main container
-=begin html
-
-</div>
-</div>
-</div>
-
-=end html
-
 
 1;

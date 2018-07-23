@@ -3,32 +3,81 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title></title>
-<link rel="stylesheet" href="css/skeleton.css" type="text/css" />
+<link rel="stylesheet" href="css/style.css" type="text/css" />
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@localhost" />
+<link rev="made" href="mailto:brew@highsierra-2.local" />
 </head>
 
 <body>
 
 
 
-<div class="container">
-    <div class="row">
-      <div class="column" style="margin-top: 25%">
+<ul id="index">
+  <li><a href="#BamQC">BamQC</a>
+    <ul>
+      <li><a href="#NAME">NAME</a></li>
+      <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+      <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+      <li><a href="#AUTHOR">AUTHOR</a></li>
+      <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+    </ul>
+  </li>
+  <li><a href="#Subroutines">Subroutines</a>
+    <ul>
+      <li><a href="#assess_flag-flag-stats-qual-qcut">assess_flag($flag,$stats,$qual,$qcut)</a></li>
+      <li><a href="#assess_start_point-chrom-s1-s2-sphash">assess_start_point($chrom,$s1,$s2,$sphash)</a></li>
+      <li><a href="#read_bed-file">read_bed($file)</a></li>
+      <li><a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)</a></li>
+      <li><a href="#md_stats-R-mdstring-strand-stats">md_stats($R,$mdstring,$strand,$stats)</a></li>
+      <li><a href="#onTarget-chrom-start-mapped-stats">onTarget($chrom,$start,$mapped,$stats)</a></li>
+      <li><a href="#addRunningBaseCoverage-chrom-start1-start2-cigar-strand-stats">addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)</a></li>
+      <li><a href="#runningBaseCoverage-stats-chrom-startpos">runningBaseCoverage($stats,$chrom,$startpos)</a></li>
+      <li><a href="#HistStats-val">HistStats(%val)</a></li>
+      <li><a href="#insertMapping-tlen-rnext-hash-p">insertMapping($tlen,$rnext,$hash,$p)</a></li>
+      <li><a href="#load_json-files">load_json(@files)</a></li>
+      <li><a href="#toPhred-char">toPhred($char)</a></li>
+      <li><a href="#generate_jsonHash-stats-p">generate_jsonHash($stats,$p)</a></li>
+      <li><a href="#generate_error_rate-hash-prefix">generate_error_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_mismatch_rate-hash-prefix">generate_mismatch_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_indel_rate-hash-prefix">generate_indel_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_softclip_rate-hash-prefix">generate_softclip_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_hardclip_rate-hash-prefix">generate_hardclip_rate( $hash, $prefix )</a></li>
+      <li><a href="#get_barcode-jsonHash">get_barcode( $jsonHash)</a></li>
+      <li><a href="#get_group-jsonHash">get_group( $jsonHash)</a></li>
+      <li><a href="#get_raw_reads-jsonHash">get_raw_reads( $jsonHash)</a></li>
+      <li><a href="#get_raw_yield-jsonHash">get_raw_yield( $jsonHash)</a></li>
+      <li><a href="#get_map_percent-jsonHash">get_map_percent( $jsonHash)</a></li>
+      <li><a href="#get_ontarget_percent-jsonHash">get_ontarget_percent( $jsonHash)</a></li>
+      <li><a href="#get_est_yield-jsonHash">get_est_yield( $jsonHash)</a></li>
+      <li><a href="#get_est_coverage-jsonHash">get_est_coverage( $jsonHash)</a></li>
+      <li><a href="#findStart-cigarOp-start">findStart($cigarOp, $start)</a></li>
+      <li><a href="#findEnd-cigarOp-end">findEnd($cigarOp, $end)</a></li>
+    </ul>
+  </li>
+</ul>
 
-<h1 id="General-Information">General Information</h1>
+<label for="show-menu" class="show-menu">Show Menu</label>
+<input type="checkbox" id="show-menu" role="button">
+
+<h1>Genome Sequence Informatics</h1>
+
+<h1 id="BamQC">BamQC</h1>
 
 <h2 id="NAME">NAME</h2>
 
-<p>bamqc - Generate quality control statistics from BAM files</p>
+<p>bamqc - Generate quality control statistics from BAM files.</p>
 
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
 <pre><code>  use GSI::bamqc;</code></pre>
 
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p>This library&#39;s whole function is to get enough information to feed to <a href="#generate_jsonHash-stats-p">&quot;generate_jsonHash($stats,$p)&quot;</a> and produce a JSON file with lots and lots of information about the BAM file.</p>
+
 <h2 id="AUTHOR">AUTHOR</h2>
 
-<p>Genome Sequence Informatics Ontario Institute for Cancer Research https://github.com/oicr-gsi</p>
+<p><a href="https://gsi.oicr.on.ca">Genome Sequence Informatics</a>, <a href="https://oicr.on.ca">Ontario Institute for Cancer Research</a>. On Github at <a href="https://github.com/oicr-gsi/bamqc">https://github.com/oicr-gsi/bamqc</a>.</p>
 
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 
@@ -48,7 +97,7 @@
 
 <p>Assesses the sam flag and stores information in the $stats reference hash</p>
 
-<h3 id="Arguments">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -70,7 +119,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>1 if the read is mapped, 0 if not (modifies $stats with statuses). The following labels will be incremented in $stats if found.</p>
 
@@ -114,7 +163,7 @@
 
 <p>Reads per start point is recalculated when the leftstart changes from the previous record</p>
 
-<h3 id="Arguments1">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -136,7 +185,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns1">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>A revised StartPoint $sphash hash, with updated stats:</p>
 
@@ -162,7 +211,7 @@
 
 <p>Reads in a bed file, storing in <code>intervals</code> in an array of hashes indicating, Start/Stop and size</p>
 
-<h3 id="Arguments2">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -172,7 +221,7 @@
 </dd>
 </dl>
 
-<h3 id="Errors">Errors</h3>
+<p><b>Errors</b></p>
 
 <dl>
 
@@ -186,7 +235,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns2">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>Hash structure containing the bed intervals</p>
 
@@ -202,7 +251,7 @@
 
 <p>Processes the cigarString by breaking into pieces and assessing how the read is mapped to the reference</p>
 
-<h3 id="Arguments3">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -240,7 +289,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns3">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>A list with two values, $readLength and $mappedBases. Increments $stats with values:</p>
 
@@ -272,7 +321,7 @@
 </dd>
 </dl>
 
-<h3 id="Errors1">Errors</h3>
+<p><b>Errors</b></p>
 
 <dl>
 
@@ -288,7 +337,7 @@
 
 <p>Processes the MD:Z tag in the SAM.</p>
 
-<h3 id="Arguments4">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -310,7 +359,7 @@
 </dd>
 </dl>
 
-<h3 id="Return">Return</h3>
+<p><b>Returns</b></p>
 
 <p>The number of mismatches defined by the MD string. Increments the following in the $stats hash, if encountered.</p>
 
@@ -332,7 +381,7 @@
 
 <p>Determines if the read overlaps to any degree intervals contained within the bedfile record. The bedfile record is modified to indicated mapping to this interval. One read may map to multiple intervals.</p>
 
-<h3 id="What-is-an-on-target-read">What is an on-target read?</h3>
+<p><b>What is an on-target read?</b></p>
 
 <p>A read that overlaps the target region by any number of bases (0=false; 1=true).</p>
 
@@ -344,7 +393,7 @@
               1111111111111
                                0000000000</code></pre>
 
-<h3 id="Arguments5">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -370,7 +419,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns4">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>1 if mapped to Target, 0 if not. Increments the following in the $stats hash, if encountered.</p>
 
@@ -388,7 +437,7 @@
 
 <p>Adds fragments to the runningBaseCoverage collection. Each fragment is added to all positions to which the read maps. This collection will be continuously process and cleared of all positions that precede the current read start</p>
 
-<h3 id="Arguments6">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -418,7 +467,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns5">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>The number of positions to which the current fragment is stored/mapped. Increments the following in the $stats hash, if encountered.</p>
 
@@ -436,7 +485,7 @@
 
 <p>Calculates base coverage as a running total. This requires that the streaming records are from a sorted bam file. This will produce a hash with chromosomal keys, each value being a hash of fragment positions and counts, by parsing the cigar string for the current record. When a new mapping position is found, stats are generated on all stored positions, and then the hash is cleared</p>
 
-<h3 id="Arguments7">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -454,7 +503,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns6">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>The number of cleared positions from the runningBaseCoverage hash. Increments the following in the $stats hash, if encountered.</p>
 
@@ -476,7 +525,7 @@
 
 <p>Calculate the mean and standard deviation of insert sizes in a hash</p>
 
-<h3 id="Arguments8">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -486,7 +535,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns7">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>Mean and standard deviation of the insert sizes.</p>
 
@@ -496,7 +545,7 @@
 
 <p>Identifies the paired-end insert size as being within the normal range, abnormally far, or on different chromosomes</p>
 
-<h3 id="Arguments9">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -518,7 +567,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns8">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>A description of the insert mapping. Modifies the reference hash at the following key and returns a string, one of:</p>
 
@@ -546,7 +595,7 @@
 
 <p>Open, decode, and store each JSON file in a hash with filename keys</p>
 
-<h3 id="Arguments10">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -556,7 +605,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns9">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>A hash with basename(filename) keys &gt; decoded JSON hash</p>
 
@@ -566,7 +615,7 @@
 
 <p>Convert a character to a phred score (ascii value - 33)</p>
 
-<h3 id="Argument">Argument</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -576,7 +625,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns10">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>Phred score</p>
 
@@ -667,7 +716,7 @@
 <dt id="non-primary-reads">&quot;non primary reads&quot;</dt>
 <dd>
 
-<p>Integer. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
+<p>Integer. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a>.</p>
 
 </dd>
 <dt id="number-of-ends">&quot;number of ends&quot;</dt>
@@ -678,6 +727,8 @@
 </dd>
 <dt id="number-of-targets">&quot;number of targets&quot;</dt>
 <dd>
+
+<p>Integer. Set in <a href="#read_bed-file">&quot;read_bed($file)&quot;</a>. Corresponds to number of lines in the BED file.</p>
 
 </dd>
 <dt id="paired-reads">&quot;paired reads&quot;</dt>
@@ -735,19 +786,25 @@
 <dt id="read-length-histogram">&quot;$read length histogram&quot;</dt>
 <dd>
 
-<p>List. (bamqc.pl)</p>
+<p>Hash. Contains buckets for every read length (bamqc.pl).</p>
 
 </dd>
 <dt id="read-mismatch-by-cycle">&quot;$read mismatch by cycle&quot;</dt>
 <dd>
 
+<p>Hash. Searches for &quot;MD:Z:*&quot; string and passes it to <a href="#md_stats-R-mdstring-strand-stats">&quot;md_stats($R,$mdstring,$strand,$stats)&quot;</a>.</p>
+
 </dd>
 <dt id="read-quality-by-cycle">&quot;$read quality by cycle&quot;</dt>
 <dd>
 
+<p>Hash. (bamqc.pl).</p>
+
 </dd>
 <dt id="read-quality-histogram">&quot;$read quality histogram&quot;</dt>
 <dd>
+
+<p>Hash. (bamqc.pl).</p>
 
 </dd>
 <dt id="read-soft-clip-by-cycle">&quot;$read soft clip by cycle&quot;</dt>
@@ -759,9 +816,13 @@
 <dt id="reads-on-target">&quot;reads on target&quot;</dt>
 <dd>
 
+<p>Integer. Incremented if <a href="#onTarget-chrom-start-mapped-stats">&quot;onTarget($chrom,$start,$mapped,$stats)&quot;</a> in bamqc.pl.</p>
+
 </dd>
 <dt id="reads-per-start-point">&quot;reads per start point&quot;</dt>
 <dd>
+
+<p>Float. See <a href="#assess_start_point-chrom-s1-s2-sphash">&quot;assess_start_point($chrom,$s1,$s2,$sphash)&quot;</a>.</p>
 
 </dd>
 <dt id="soft-clip-bases">&quot;soft clip bases&quot;</dt>
@@ -796,7 +857,7 @@
 </dd>
 </dl>
 
-<h3 id="Arguments11">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -810,7 +871,7 @@
 </dd>
 </dl>
 
-<h3 id="Returns11">Returns</h3>
+<p><b>Returns</b></p>
 
 <p>The jsonHash, ready to print.</p>
 
@@ -820,9 +881,7 @@
 
 <p>Compute the error rate with (mismatch+insertion+deletion)/aligned</p>
 
-<h3 id="Returns-:-A-formatted-percentage">Returns : A formatted percentage</h3>
-
-<h3 id="Arguments12">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -836,15 +895,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
 <hr>
 
 <h2 id="generate_mismatch_rate-hash-prefix">generate_mismatch_rate( $hash, $prefix )</h2>
 
 <p>Compute the mismatch rate with mismatch/aligned</p>
 
-<h3 id="Returns-:-A-formatted-percentage1">Returns : A formatted percentage</h3>
-
-<h3 id="Arguments13">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -858,15 +919,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
 <hr>
 
 <h2 id="generate_indel_rate-hash-prefix">generate_indel_rate( $hash, $prefix )</h2>
 
 <p>Compute the indel rate with (insertion+deletion)/aligned</p>
 
-<h3 id="Returns-:-A-formatted-percentage2">Returns : A formatted percentage</h3>
-
-<h3 id="Arguments14">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -880,15 +943,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
 <hr>
 
 <h2 id="generate_softclip_rate-hash-prefix">generate_softclip_rate( $hash, $prefix )</h2>
 
 <p>Compute the softclip rate with soft clip/(soft clip + aligned)</p>
 
-<h3 id="Returns-:-A-formatted-percentage3">Returns : A formatted percentage</h3>
-
-<h3 id="Arguments15">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -902,15 +967,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
 <hr>
 
 <h2 id="generate_hardclip_rate-hash-prefix">generate_hardclip_rate( $hash, $prefix )</h2>
 
 <p>Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)</p>
 
-<h3 id="Returns-:-A-formatted-percentage4">Returns : A formatted percentage</h3>
-
-<h3 id="Arguments16">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -924,15 +991,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
 <hr>
 
 <h2 id="get_barcode-jsonHash">get_barcode( $jsonHash)</h2>
 
 <p>Get the sequencing index / barcode</p>
 
-<h3 id="Returns-:-the-barcode-if-it-exists-otherwise-NoIndex">Returns : the barcode if it exists; otherwise &#39;NoIndex&#39;</h3>
-
-<h3 id="Arguments17">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -942,15 +1011,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The barcode if it exists; otherwise &#39;NoIndex&#39;</p>
+
 <hr>
 
 <h2 id="get_group-jsonHash">get_group( $jsonHash)</h2>
 
 <p>Get the group id and group id description</p>
 
-<h3 id="Returns-:-the-group-id-and-group-id-description-separated-by-a-space-if-they-exist.-If-they-dont-exist-then-na">Returns : the group id and group id description separated by a space, if they exist. If they don&#39;t exist, then &#39;na&#39;</h3>
-
-<h3 id="Arguments18">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -960,15 +1031,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The group id and group id description separated by a space, if they exist. If they don&#39;t exist, then &#39;na&#39;.</p>
+
 <hr>
 
 <h2 id="get_raw_reads-jsonHash">get_raw_reads( $jsonHash)</h2>
 
 <p>Get the total raw reads, counted by summing mapped, unmapped and qual fail reads</p>
 
-<h3 id="Returns-:-the-total-number-of-reads-int">Returns : the total number of reads (int)</h3>
-
-<h3 id="Arguments19">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -978,15 +1051,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The total number of reads (int).</p>
+
 <hr>
 
 <h2 id="get_raw_yield-jsonHash">get_raw_yield( $jsonHash)</h2>
 
 <p>Get the total raw yield, multipying get_raw_reads by the average read length</p>
 
-<h3 id="Returns-:-the-total-yield-int">Returns : the total yield (int)</h3>
-
-<h3 id="Arguments20">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -996,15 +1071,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The total yield (int).</p>
+
 <hr>
 
 <h2 id="get_map_percent-jsonHash">get_map_percent( $jsonHash)</h2>
 
 <p>Get the total map percentage, calculated by dividing mapped reads by total number of reads and multiplying by 100. If total reads is 0, treat as 1.</p>
 
-<h3 id="Returns-:-the-map-percentage-as-an-integer">Returns : the map percentage as an integer</h3>
-
-<h3 id="Arguments21">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -1014,15 +1091,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The map percentage as an integer.</p>
+
 <hr>
 
 <h2 id="get_ontarget_percent-jsonHash">get_ontarget_percent( $jsonHash)</h2>
 
 <p>Get the total on target percentage by dividing reads on target by the number of mapped reads, and multiplying by 100. If mapped reads is 0, treat as 1.</p>
 
-<h3 id="Returns-:-the-on-target-percentage-as-an-integer">Returns : the on target percentage as an integer</h3>
-
-<h3 id="Arguments22">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -1032,15 +1111,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The on target percentage as an integer</p>
+
 <hr>
 
 <h2 id="get_est_yield-jsonHash">get_est_yield( $jsonHash)</h2>
 
 <p>Get the estimated total yield by multiplying total aligned based by the on target percentage, and dividing that by reads per start point. If reads per start point is is 0, treat as 1.</p>
 
-<h3 id="Returns-:-the-estimated-yield-as-an-integer">Returns : the estimated yield as an integer</h3>
-
-<h3 id="Arguments23">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -1054,15 +1135,17 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The estimated yield as an integer</p>
+
 <hr>
 
 <h2 id="get_est_coverage-jsonHash">get_est_coverage( $jsonHash)</h2>
 
 <p>Get the estimated total coverage by dividing estimated yield by the target size. If the target is is 0, treat as 1.</p>
 
-<h3 id="Returns-:-the-estimated-coverage-as-an-integer">Returns : the estimated coverage as an integer</h3>
-
-<h3 id="Argument1">Argument</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
@@ -1076,15 +1159,29 @@
 </dd>
 </dl>
 
+<p><b>Returns</b></p>
+
+<p>The estimated coverage as an integer.</p>
+
 <hr>
 
 <h2 id="findStart-cigarOp-start">findStart($cigarOp, $start)</h2>
 
 <p>Find the start index of the read using the cigar string</p>
 
-<h3 id="Returns-:-the-new-start-position-adjusted-to-take-soft-clipping-into-account">Returns : the new start position, adjusted to take soft clipping into account</h3>
+<p><b>Arguments</b></p>
 
-<h3 id="Argument-:-cigarOp-the-cigar-string">Argument : $cigarOp = the cigar string</h3>
+<dl>
+
+<dt id="cigarOp-the-cigar-string">$cigarOp = the cigar string</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The new start position, adjusted to take soft clipping into account</p>
 
 <hr>
 
@@ -1092,13 +1189,11 @@
 
 <p>Find the start index of the read using the cigar string</p>
 
-<h3 id="Returns-:-the-new-start-position-adjusted-to-take-soft-clipping-into-account1">Returns : the new start position, adjusted to take soft clipping into account</h3>
-
-<h3 id="Arguments24">Arguments</h3>
+<p><b>Arguments</b></p>
 
 <dl>
 
-<dt id="cigarOp-the-cigar-string">$cigarOp = the cigar string;</dt>
+<dt id="cigarOp-the-cigar-string1">$cigarOp = the cigar string;</dt>
 <dd>
 
 </dd>
@@ -1108,31 +1203,9 @@
 </dd>
 </dl>
 
-</div>
-</div>
-</div>
+<p><b>Returns</b></p>
 
-<p>1;</p>
-
-<h1 id="POD-ERRORS">POD ERRORS</h1>
-
-<p>Hey! <b>The above document had some coding errors, which are explained below:</b></p>
-
-<dl>
-
-<dt id="Around-line-241">Around line 241:</dt>
-<dd>
-
-<p>You forgot a &#39;=back&#39; before &#39;=head2&#39;</p>
-
-</dd>
-<dt id="Around-line-1090">Around line 1090:</dt>
-<dd>
-
-<p>You forgot a &#39;=back&#39; before &#39;=head3&#39;</p>
-
-</dd>
-</dl>
+<p>The new start position, adjusted to take soft clipping into account</p>
 
 
 </body>
