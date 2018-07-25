@@ -21,33 +21,42 @@ sub new {
 
 #################### main pod documentation begin ###################
 
-=head1 NAME
+=begin html
+
+<label for="show-menu" class="show-menu">Show Menu</label>
+<input type="checkbox" id="show-menu" role="button">
+
+<h1>Genome Sequence Informatics</h1>
+
+=end html
+
+=head1 RunReport
+
+=head2 NAME
 
 RunReport - Use the JSON produced by GSI::bamqc to generate an HTML page
 
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   use GSI::RunReport;
 
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
+Takes the JSON files produced by GSI::BamQC and produces an HTML page with
+nicely rendered graphs and tables.
 
-=head1 USAGE
+=head2 USAGE
 
-use SeqWare::Html;
+    use SeqWare::Html;
 
-=head1 BUGS
+=head2 AUTHOR
 
-=head1 SUPPORT
+L<Genome Sequence Informatics|https://gsi.oicr.on.ca>,
+L<Ontario Institute for Cancer Research|https://oicr.on.ca>.
+On Github at L<https://github.com/oicr-gsi/bamqc>.
 
-=head1 AUTHOR
-
-Genome Sequence Informatics
-Ontario Institute for Cancer Research
-https://github.com/oicr-gsi
-
-=head1 COPYRIGHT
+=head2 COPYRIGHT
 
 Copyright (C) 2017 The Ontario Institute for Cancer Research
 
@@ -66,9 +75,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
-=head1 SEE ALSO
-
-perl(1).
+=head1 Subroutines
 
 =cut
 
@@ -167,14 +174,18 @@ my %plot_names = (
 
 ###########################################
 
+=for html <hr>
+
 =head2 get_possible_headers()
 
-  Returns the headers that the RunReport supports, mapped to their human-friendly
-  name. The keys in this hash are used by the various reporting methods to create
-  their tables. In order to get tables to print different sets of headers
-  change the parameter passed in: p{table_columns}{data|graph|tsv}.
+Returns the headers that the RunReport supports, mapped to their human-friendly
+name. The keys in this hash are used by the various reporting methods to create
+their tables. In order to get tables to print different sets of headers
+change the parameter passed in: p{table_columns}{data|graph|tsv}.
 
-  Returns: a hash mapping shortnames to human-friendly names for the table header
+B<Returns>
+
+A hash mapping shortnames to human-friendly names for the table header
 
 =cut
 
@@ -182,14 +193,18 @@ sub get_possible_headers {
     return \%table_headers;
 }
 
+=for html <hr>
+
 =head2 get_possible_plot_names()
 
-  Returns the image short names that the RunReport supports, mapped to their
-  actual PNG filename. The keys in this hash are used by the various reporting
-  methods to create their tables. In order to get tables to print different sets of headers
-  change the parameter passed in: p{plotnames}.
+Returns the image short names that the RunReport supports, mapped to their
+actual PNG filename. The keys in this hash are used by the various reporting
+methods to create their tables. In order to get tables to print different sets of headers
+change the parameter passed in: p{plotnames}.
 
-  Returns: a hash mapping shortnames to plot filenames for the table header
+B<Returns>
+
+A hash mapping shortnames to plot filenames for the table header
 
 =cut
 
@@ -197,13 +212,22 @@ sub get_possible_plot_names {
     return \%plot_names;
 }
 
+=for html <hr>
+
 =head2 plot_data($jsonHash,$scriptPath)
 
-  Creates the graphs for the report using jsonToGraphs.pl in the same directory
-  as each JSON file.
+Creates the graphs for the report using jsonToGraphs.pl in the same directory
+as each JSON file.
 
-  Arguments: $jsonHash = The hash containing the JSON file contents to analyse;
-             $scriptPath = the directory where jsonToGraphs.pl is located.
+B<Arguments>
+
+=over
+
+=item $jsonHash = The hash containing the JSON file contents to analyse;
+
+=item $scriptPath = the directory where jsonToGraphs.pl is located.
+
+=back
 
 =cut
 
@@ -219,20 +243,41 @@ sub plot_data {
     }
 }
 
+=for html <hr>
+
 =head2 data_table($p,$jsonHash,$sorted_lane_list,$run)
 
-  Returns the HTML for the main metrics table.
+Returns the HTML for the main metrics table.
 
-  Arguments: $p=parameters used for the data_table. Required keys:
-                $p->{table_columns}{data}-the ordered array of shortname for the header
-                $p->{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;
-             $jsonHash=A hash containing the JSON files contents to analyse;
-             $sorted_lane_list=the list of json files in sorted lane order;
-             $run=the name of the sequencer run.
+B<Arguments>
 
-  Returns: the HTML for the main metrics table.
+=over
 
-  See: get_possible_headers
+=item $p=parameters used for the data_table. Required keys:
+
+=over
+
+=item $p->{table_columns}{data}-the ordered array of shortname for the header
+
+=item $p->{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;
+
+=back
+
+=item $jsonHash=A hash containing the JSON files contents to analyse;
+
+=item $sorted_lane_list=the list of json files in sorted lane order;
+
+=item $run=the name of the sequencer run.
+
+=back
+
+B<Returns>
+
+The HTML for the main metrics table.
+
+B<See>
+
+L</get_possible_headers()>
 
 =cut
 
@@ -316,17 +361,35 @@ sub data_row {
 
 }
 
+=for html <hr>
+
 =head2 coverage_table($p,$jsonHash,$sorted_lane_list,$run)
 
-  Returns the HTML for the coverage table.
+Returns the HTML for the coverage table.
 
-  Arguments: $p=parameters used for the coverage_table. Required keys:
-                $p->{coverageXs}-an array with the N X values to report for coverage
-             $jsonHash=A hash containing the JSON files contents to analyse;
-             $sorted_lane_list=the list of json files in sorted lane order;
-             $run=the name of the sequencer run.
+B<Arguments>
 
-  Returns: the HTML for the coverage table.
+=over
+
+=item $p=parameters used for the coverage_table. Required keys:
+
+=over
+
+=item $p->{coverageXs}-an array with the N X values to report for coverage
+
+=back
+
+=item $jsonHash=A hash containing the JSON files contents to analyse;
+
+=item $sorted_lane_list=the list of json files in sorted lane order;
+
+=item $run=the name of the sequencer run.
+
+=back
+
+B<Returns>
+
+the HTML for the coverage table.
 
 
 =cut
@@ -386,20 +449,40 @@ sub coverage_table {
 
 }
 
+=for html <hr>
+
 =head2 graph_table($p,$jsonHash,$sorted_lane_list,$run)
 
-  Returns the HTML for the graph table. Note that this does not do the graphing.
-  plot_data must be called to generate graphs.
+Returns the HTML for the graph table. Note that this does not do the graphing.
+plot_data must be called to generate graphs.
 
-  Arguments: $p=parameters used for the graph_table. Required keys:
-                  $p->{table_columns}{graph}-the ordered array of shortname for the header
-             $jsonHash=A hash containing the JSON files contents to analyse;
-             $sorted_lane_list=the list of json files in sorted lane order;
-             $run=the name of the sequencer run.
+B<Arguments>
 
-  Returns: the HTML for the graph table.
+=over
 
-  See: plot_data, get_possible_headers
+=item $p=parameters used for the graph_table. Required keys:
+
+=over
+
+=item $p->{table_columns}{graph}-the ordered array of shortname for the header
+
+=back
+
+=item $jsonHash=A hash containing the JSON files contents to analyse;
+
+=item $sorted_lane_list=the list of json files in sorted lane order;
+
+=item $run=the name of the sequencer run.
+
+=back
+
+B<Returns>
+
+the HTML for the graph table.
+
+B<See>
+
+L</plot_data($jsonHash,$scriptPath)>, L</get_possible_headers()>
 
 =cut
 
@@ -426,20 +509,41 @@ sub graph_table {
     return SeqWare::Html::table( $header, undef, @rows );
 }
 
+=for html <hr>
+
 =head2 lane_info($p,$jsonHash,$sorted_lane_list,$run)
 
-  Returns the HTML for the target block.
+Returns the HTML for the target block.
 
-  Arguments: $p=parameters used for the graph_table. Required keys:
-                  $p->{table_columns}{graph}-the ordered array of shortname for the graph table header
-                  $p->{printAllImages}-whether or not to print all of the images in large
-             $jsonHash=A hash containing the JSON files contents to analyse;
-             $sorted_lane_list=the list of json files in sorted lane order;
-             $run=the name of the sequencer run.
+B<Arguments>
 
-  Returns: the HTML for the lane block.
+=over
 
-  See: get_possible_headers
+=item $p=parameters used for the graph_table. Required keys:
+
+=over
+
+=item $p->{table_columns}{graph}-the ordered array of shortname for the graph table header
+
+=item $p->{printAllImages}-whether or not to print all of the images in large
+
+=back
+
+=item $jsonHash=A hash containing the JSON files contents to analyse;
+
+=item $sorted_lane_list=the list of json files in sorted lane order;
+
+=item $run=the name of the sequencer run.
+
+=back
+
+B<Returns>
+
+the HTML for the lane block.
+
+B<See>
+
+L</get_possible_headers()>
 
 =cut
 
@@ -493,21 +597,41 @@ sub lane_info {
     return $html;
 }
 
+=for html <hr>
+
 =head2 write_tsv($p,$jsonHash,$sorted_lane_list,$run)
 
-  Writes a TSV with all "data_table" metrics plus the information from
-  "lane_info". Arbitrarily picks the last JSON file's directory to write the
-  TSV into.
+Writes a TSV with all "data_table" metrics plus the information from
+"lane_info". Arbitrarily picks the last JSON file's directory to write the
+TSV into.
 
-  Arguments: $p=parameters used for the data_table. Required keys:
-                $p->{table_columns}{tsv}-the ordered array of shortname for the header
-             $jsonHash=A hash containing the JSON files contents to analyse;
-             $sorted_lane_list=the list of json files in sorted lane order;
-             $run=the name of the sequencer run.
+B<Arguments>
 
-  Returns: the HTML pointing to the TSV file
+=over
 
-  See: get_possible_headers
+=item $p=parameters used for the data_table. Required keys:
+
+=over
+
+=item $p->{table_columns}{tsv}-the ordered array of shortname for the header
+
+=back
+
+=item $jsonHash=A hash containing the JSON files contents to analyse;
+
+=item $sorted_lane_list=the list of json files in sorted lane order;
+
+=item $run=the name of the sequencer run.
+
+=back
+
+B<Returns>
+
+the HTML pointing to the TSV file
+
+B<See>
+
+L</get_possible_headers()>
 
 =cut
 

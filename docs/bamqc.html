@@ -1,0 +1,1215 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<link rel="stylesheet" href="css/style.css" type="text/css" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:brew@highsierra-2.local" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#BamQC">BamQC</a>
+    <ul>
+      <li><a href="#NAME">NAME</a></li>
+      <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+      <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+      <li><a href="#AUTHOR">AUTHOR</a></li>
+      <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+    </ul>
+  </li>
+  <li><a href="#Subroutines">Subroutines</a>
+    <ul>
+      <li><a href="#assess_flag-flag-stats-qual-qcut">assess_flag($flag,$stats,$qual,$qcut)</a></li>
+      <li><a href="#assess_start_point-chrom-s1-s2-sphash">assess_start_point($chrom,$s1,$s2,$sphash)</a></li>
+      <li><a href="#read_bed-file">read_bed($file)</a></li>
+      <li><a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)</a></li>
+      <li><a href="#md_stats-R-mdstring-strand-stats">md_stats($R,$mdstring,$strand,$stats)</a></li>
+      <li><a href="#onTarget-chrom-start-mapped-stats">onTarget($chrom,$start,$mapped,$stats)</a></li>
+      <li><a href="#addRunningBaseCoverage-chrom-start1-start2-cigar-strand-stats">addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)</a></li>
+      <li><a href="#runningBaseCoverage-stats-chrom-startpos">runningBaseCoverage($stats,$chrom,$startpos)</a></li>
+      <li><a href="#HistStats-val">HistStats(%val)</a></li>
+      <li><a href="#insertMapping-tlen-rnext-hash-p">insertMapping($tlen,$rnext,$hash,$p)</a></li>
+      <li><a href="#load_json-files">load_json(@files)</a></li>
+      <li><a href="#toPhred-char">toPhred($char)</a></li>
+      <li><a href="#generate_jsonHash-stats-p">generate_jsonHash($stats,$p)</a></li>
+      <li><a href="#generate_error_rate-hash-prefix">generate_error_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_mismatch_rate-hash-prefix">generate_mismatch_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_indel_rate-hash-prefix">generate_indel_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_softclip_rate-hash-prefix">generate_softclip_rate( $hash, $prefix )</a></li>
+      <li><a href="#generate_hardclip_rate-hash-prefix">generate_hardclip_rate( $hash, $prefix )</a></li>
+      <li><a href="#get_barcode-jsonHash">get_barcode( $jsonHash)</a></li>
+      <li><a href="#get_group-jsonHash">get_group( $jsonHash)</a></li>
+      <li><a href="#get_raw_reads-jsonHash">get_raw_reads( $jsonHash)</a></li>
+      <li><a href="#get_raw_yield-jsonHash">get_raw_yield( $jsonHash)</a></li>
+      <li><a href="#get_map_percent-jsonHash">get_map_percent( $jsonHash)</a></li>
+      <li><a href="#get_ontarget_percent-jsonHash">get_ontarget_percent( $jsonHash)</a></li>
+      <li><a href="#get_est_yield-jsonHash">get_est_yield( $jsonHash)</a></li>
+      <li><a href="#get_est_coverage-jsonHash">get_est_coverage( $jsonHash)</a></li>
+      <li><a href="#findStart-cigarOp-start">findStart($cigarOp, $start)</a></li>
+      <li><a href="#findEnd-cigarOp-end">findEnd($cigarOp, $end)</a></li>
+    </ul>
+  </li>
+</ul>
+
+<label for="show-menu" class="show-menu">Show Menu</label>
+<input type="checkbox" id="show-menu" role="button">
+
+<h1>Genome Sequence Informatics</h1>
+
+<h1 id="BamQC">BamQC</h1>
+
+<h2 id="NAME">NAME</h2>
+
+<p>bamqc - Generate quality control statistics from BAM files.</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<pre><code>  use GSI::bamqc;</code></pre>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p>This library&#39;s whole function is to get enough information to feed to <a href="#generate_jsonHash-stats-p">&quot;generate_jsonHash($stats,$p)&quot;</a> and produce a JSON file with lots and lots of information about the BAM file.</p>
+
+<h2 id="AUTHOR">AUTHOR</h2>
+
+<p><a href="https://gsi.oicr.on.ca">Genome Sequence Informatics</a>, <a href="https://oicr.on.ca">Ontario Institute for Cancer Research</a>. On Github at <a href="https://github.com/oicr-gsi/bamqc">https://github.com/oicr-gsi/bamqc</a>.</p>
+
+<h2 id="COPYRIGHT">COPYRIGHT</h2>
+
+<p>Copyright (C) 2018 The Ontario Institute for Cancer Research</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+
+<p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
+
+<p>You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</p>
+
+<h1 id="Subroutines">Subroutines</h1>
+
+<hr>
+
+<h2 id="assess_flag-flag-stats-qual-qcut">assess_flag($flag,$stats,$qual,$qcut)</h2>
+
+<p>Assesses the sam flag and stores information in the $stats reference hash</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="flag-:-the-sam-record-flag">$flag : the sam record flag;</dt>
+<dd>
+
+</dd>
+<dt id="stats-:-a-reference-to-a-hash-which-will-be-modified">$stats : a reference to a hash, which will be modified;</dt>
+<dd>
+
+</dd>
+<dt id="qual-:-the-alignment-quality">$qual : the alignment quality;</dt>
+<dd>
+
+</dd>
+<dt id="param-:-the-parameter-hash">$param : the parameter hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>1 if the read is mapped, 0 if not (modifies $stats with statuses). The following labels will be incremented in $stats if found.</p>
+
+<dl>
+
+<dt id="non-primary-reads-256">&quot;non primary reads&quot; = 256</dt>
+<dd>
+
+</dd>
+<dt id="unmapped-reads-4">&quot;unmapped reads = 4;</dt>
+<dd>
+
+</dd>
+<dt id="qual-fail-reads-qual-qcut">&quot;qual fail reads&quot; = $qual &lt; $qcut ;</dt>
+<dd>
+
+</dd>
+<dt id="mapped-reads-if-none-of-the-above-are-true">&quot;mapped reads&quot; = if none of the above are true</dt>
+<dd>
+
+</dd>
+<dt id="paired-reads-1">&quot;paired reads&quot; = 1</dt>
+<dd>
+
+</dd>
+<dt id="mate-unmaped-reads-sic-8">&quot;mate unmaped reads&quot; [sic] = 8;</dt>
+<dd>
+
+</dd>
+<dt id="properly-paired-reads-2">&quot;properly paired reads&quot; = 2</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="assess_start_point-chrom-s1-s2-sphash">assess_start_point($chrom,$s1,$s2,$sphash)</h2>
+
+<p>Keeps a running calculation of ReadsPerStartPoint, updating value with each read. It is dependent on the stream alignment data being properly sorted.</p>
+
+<p>Reads per start point is recalculated when the leftstart changes from the previous record</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="chrom-the-chromosome-of-the-current-record">$chrom = the chromosome of the current record;</dt>
+<dd>
+
+</dd>
+<dt id="s1-the-position-of-the-current-record-the-leftmost-start-point">$s1 = the position of the current record = the leftmost start point;</dt>
+<dd>
+
+</dd>
+<dt id="s2-the-position-of-the-paired-record-the-rightmost-start-point">$s2 = the position of the paired record = the rightmost start point;</dt>
+<dd>
+
+</dd>
+<dt id="sphash-the-current-StartPoint-hash-holding-the-current-position-and-the-running-ReadsPerStartPoint-value">$sphash = the current StartPoint hash, holding the current position and the running ReadsPerStartPoint value;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A revised StartPoint $sphash hash, with updated stats:</p>
+
+<dl>
+
+<dt id="count-:-count-each-distinct-pairedstart-as-a-distinct-start-point">&quot;count&quot; : count each distinct pairedstart as a distinct start point</dt>
+<dd>
+
+</dd>
+<dt id="current-:-record-the-current-left-start-point">&quot;current&quot; : record the current left start point</dt>
+<dd>
+
+</dd>
+<dt id="RPSP-:-reads-per-start-point">&quot;RPSP&quot; : reads per start point</dt>
+<dd>
+
+<hr>
+
+</dd>
+</dl>
+
+<h2 id="read_bed-file">read_bed($file)</h2>
+
+<p>Reads in a bed file, storing in <code>intervals</code> in an array of hashes indicating, Start/Stop and size</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="file-the-name-of-the-bed-file-containing-the-intervals">$file = the name of the bed file, containing the intervals</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Errors</b></p>
+
+<dl>
+
+<dt id="if-the-bed-file-cant-be-opened">if the bed file can&#39;t be opened</dt>
+<dd>
+
+</dd>
+<dt id="if-the-bed-file-contains-an-interval-of-size-0">if the bed file contains an interval of size 0</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>Hash structure containing the bed intervals</p>
+
+<pre><code> %bed {
+  @intervals { Start, Stop, Size }
+  targetSize
+  numberOfTargets
+ }</code></pre>
+
+<hr>
+
+<h2 id="cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)</h2>
+
+<p>Processes the cigarString by breaking into pieces and assessing how the read is mapped to the reference</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="chrom-the-chromosome-to-which-the-current-read-maps">$chrom = the chromosome to which the current read maps;</dt>
+<dd>
+
+</dd>
+<dt id="start1-the-leftmost-startpoint">$start1 = the leftmost startpoint;</dt>
+<dd>
+
+</dd>
+<dt id="start2-the-rightmost-startpoint-for-the-paired-end">$start2 = the rightmost startpoint for the paired end;</dt>
+<dd>
+
+</dd>
+<dt id="R-the-read-R1-R2-R">$R = the read (R1,R2,R?);</dt>
+<dd>
+
+</dd>
+<dt id="strand-the-strand-to-which-the-read-maps-from-the-sam-flag">$strand = the strand to which the read maps, from the sam flag;</dt>
+<dd>
+
+</dd>
+<dt id="cigar-the-cigar-string">$cigar = the cigar string;</dt>
+<dd>
+
+</dd>
+<dt id="stats-a-reference-to-the-stats-hash-which-will-be-modified">$stats = a reference to the stats hash, which will be modified;</dt>
+<dd>
+
+</dd>
+<dt id="p-a-reference-to-the-parameter-hash">$p = a reference to the parameter hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A list with two values, $readLength and $mappedBases. Increments $stats with values:</p>
+
+<dl>
+
+<dt id="alignedCount-hardClipCount-softClipCount-insertCount-deletionCount"><code>alignedCount</code>, <code>hardClipCount</code>, <code>softClipCount</code>, <code>insertCount</code>, <code>deletionCount</code></dt>
+<dd>
+
+</dd>
+<dt id="byCycle-aligned-read-cycle"><code>byCycle</code> &gt; <code>aligned</code> &gt; read &gt; cycle</dt>
+<dd>
+
+</dd>
+<dt id="byCycle-hardClip-read-cycle"><code>byCycle</code> &gt; <code>hardClip</code> &gt; read &gt; cycle</dt>
+<dd>
+
+</dd>
+<dt id="byCycle-softClip-read-cycle"><code>byCycle</code> &gt; <code>softClip</code> &gt; read &gt; cycle</dt>
+<dd>
+
+</dd>
+<dt id="byCycle-insertion-read-cycle"><code>byCycle</code> &gt; <code>insertion</code> &gt; read &gt; cycle</dt>
+<dd>
+
+</dd>
+<dt id="byCycle-deletion-read-cycle"><code>byCycle</code> &gt; <code>deletion</code> &gt; read &gt; cycle</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Errors</b></p>
+
+<dl>
+
+<dt id="if-the-cigar-string-contains-an-unknown-operation">if the cigar string contains an unknown operation</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="md_stats-R-mdstring-strand-stats">md_stats($R,$mdstring,$strand,$stats)</h2>
+
+<p>Processes the MD:Z tag in the SAM.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="R-the-read-one-of-R1-R2-R">$R = the read; one of R1,R2,R?;</dt>
+<dd>
+
+</dd>
+<dt id="mdstring-the-mismatch-string-extracted-from-the-MD:Z-tag-in-the-sam-record">$mdstring = the mismatch string, extracted from the MD:Z tag in the sam record;</dt>
+<dd>
+
+</dd>
+<dt id="strand-to-which-strand-does-the-read-map">$strand = to which strand does the read map;</dt>
+<dd>
+
+</dd>
+<dt id="stats-reference-to-the-stats-hash-values-will-be-modified">$stats = reference to the stats hash, values will be modified;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The number of mismatches defined by the MD string. Increments the following in the $stats hash, if encountered.</p>
+
+<dl>
+
+<dt id="mismatchCount"><code>mismatchCount</code></dt>
+<dd>
+
+</dd>
+<dt id="byCycle-mismatch-Read-cycle"><code>byCycle</code> &gt; <code>mismatch</code> &gt; Read &gt; cycle</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="onTarget-chrom-start-mapped-stats">onTarget($chrom,$start,$mapped,$stats)</h2>
+
+<p>Determines if the read overlaps to any degree intervals contained within the bedfile record. The bedfile record is modified to indicated mapping to this interval. One read may map to multiple intervals.</p>
+
+<p><b>What is an on-target read?</b></p>
+
+<p>A read that overlaps the target region by any number of bases (0=false; 1=true).</p>
+
+<pre><code> ---------------XXXXXXXXXXXX------------
+   0000000000
+           1111111111
+              1111111111111111
+                  11111111
+              1111111111111
+                               0000000000</code></pre>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="chrom-the-chromosome-to-which-the-read-maps">$chrom = the chromosome to which the read maps;</dt>
+<dd>
+
+</dd>
+<dt id="start-the-leftmost-start-position">$start = the leftmost start position;</dt>
+<dd>
+
+</dd>
+<dt id="mapped-the-number-of-bases-mapped">$mapped = the number of bases mapped;</dt>
+<dd>
+
+</dd>
+<dt id="bed-a-reference-to-the-bed-hash">$bed = a reference to the bed hash;</dt>
+<dd>
+
+</dd>
+<dt id="stats-a-reference-to-the-stats-hash-containing-the-bed-intervals-which-will-be-modified">$stats = a reference to the stats hash containing the bed intervals, which will be modified;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>1 if mapped to Target, 0 if not. Increments the following in the $stats hash, if encountered.</p>
+
+<dl>
+
+<dt id="bed-intervals-chromosome-index-hist-:-adds-number-of-mapped"><code>bed</code> &gt; <code>intervals</code> &gt; chromosome &gt; index &gt; <code>hist</code> : adds number of mapped</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="addRunningBaseCoverage-chrom-start1-start2-cigar-strand-stats">addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)</h2>
+
+<p>Adds fragments to the runningBaseCoverage collection. Each fragment is added to all positions to which the read maps. This collection will be continuously process and cleared of all positions that precede the current read start</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="chrom-the-chromosome-to-which-the-current-read-maps1">$chrom = the chromosome to which the current read maps;</dt>
+<dd>
+
+</dd>
+<dt id="start1-the-left-most-start-of-the-paired-end-reads">$start1 = the left-most start of the paired end reads;</dt>
+<dd>
+
+</dd>
+<dt id="start2-the-right-most-start-of-the-paired-end-reads">$start2 = the right-most start of the paired end reads;</dt>
+<dd>
+
+</dd>
+<dt id="cigar-the-cigar-string1">$cigar = the cigar string;</dt>
+<dd>
+
+</dd>
+<dt id="strand-the-strand-to-which-the-read-maps">$strand = the strand to which the read maps;</dt>
+<dd>
+
+</dd>
+<dt id="stats-a-reference-to-the-stats-hash">$stats = a reference to the stats hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The number of positions to which the current fragment is stored/mapped. Increments the following in the $stats hash, if encountered.</p>
+
+<dl>
+
+<dt id="runningBaseCoverage-chromosome-start-mismatch-deletion-offset-chrom-t-start1-t-start2"><code>runningBaseCoverage</code> &gt; chromosome &gt; start + mismatch/deletion offset &gt; &quot;$chrom\t$start1\t$start2&quot;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="runningBaseCoverage-stats-chrom-startpos">runningBaseCoverage($stats,$chrom,$startpos)</h2>
+
+<p>Calculates base coverage as a running total. This requires that the streaming records are from a sorted bam file. This will produce a hash with chromosomal keys, each value being a hash of fragment positions and counts, by parsing the cigar string for the current record. When a new mapping position is found, stats are generated on all stored positions, and then the hash is cleared</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="stats-a-reference-to-the-stats-hash-holding-the-runningBaseCoverage-hash.-Other-keys-in-the-stats-hash-will-be-modified">$stats = a reference to the stats hash, holding the runningBaseCoverage hash. Other keys in the stats hash will be modified;</dt>
+<dd>
+
+</dd>
+<dt id="chrom-the-current-chromosome-all-recorded-positions-not-on-this-chromosome-will-be-processed-and-cleared.-If-no-value-then-the-whole-hash-is-cleared">$chrom = the current chromosome, all recorded positions not on this chromosome will be processed and cleared. If no value, then the whole hash is cleared;</dt>
+<dd>
+
+</dd>
+<dt id="pos-the-current-position-all-recorded-positions-on-the-current-chromosome-before-this-position-will-be-cleared">$pos = the current position, all recorded positions on the current chromosome, before this position, will be cleared;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The number of cleared positions from the runningBaseCoverage hash. Increments the following in the $stats hash, if encountered.</p>
+
+<dl>
+
+<dt id="collapsedCoverageHist-index"><code>collapsedCoverageHist</code> &gt; index</dt>
+<dd>
+
+</dd>
+<dt id="nonCollapsedCoverageHist-index"><code>nonCollapsedCoverageHist</code> &gt; index</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="HistStats-val">HistStats(%val)</h2>
+
+<p>Calculate the mean and standard deviation of insert sizes in a hash</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="val-a-hash-with-keys-insert-size-values-count-for-each-insert-size">%val = a hash, with keys = insert size, values = count for each insert size</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>Mean and standard deviation of the insert sizes.</p>
+
+<hr>
+
+<h2 id="insertMapping-tlen-rnext-hash-p">insertMapping($tlen,$rnext,$hash,$p)</h2>
+
+<p>Identifies the paired-end insert size as being within the normal range, abnormally far, or on different chromosomes</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="tlen-template-length">$tlen = template length;</dt>
+<dd>
+
+</dd>
+<dt id="rnext-the-chromosome-of-the-other-in-the-pair-indicates-the-same">$rnext = the chromosome of the other in the pair, = indicates the same;</dt>
+<dd>
+
+</dd>
+<dt id="hash-reference-to-a-hash-collecting-statistics">$hash = reference to a hash collecting statistics;</dt>
+<dd>
+
+</dd>
+<dt id="p-parameter-hash">$p = parameter hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A description of the insert mapping. Modifies the reference hash at the following key and returns a string, one of:</p>
+
+<dl>
+
+<dt id="normalInsertSize-:-if-the-template-length-is-less-than-normalInsertMax-from-p">&quot;normalInsertSize&quot; : if the template length is less than &quot;normalInsertMax&quot; from $p</dt>
+<dd>
+
+<p>Also stores the template length in the hash.</p>
+
+</dd>
+<dt id="pairsMappedAbnormallyFar-:-if-the-template-length-is-longer-than-normalInsertMax-from-p">&quot;pairsMappedAbnormallyFar&quot; : if the template length is longer than &quot;normalInsertMax&quot; from $p</dt>
+<dd>
+
+</dd>
+<dt id="pairsMappedToDifferentChr-:-if-the-pair-is-mapped-to-a-different-chromosome">&quot;pairsMappedToDifferentChr&quot; : if the pair is mapped to a different chromosome</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="load_json-files">load_json(@files)</h2>
+
+<p>Open, decode, and store each JSON file in a hash with filename keys</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="files-a-list-of-json-file-paths">@files = a list of json file paths</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A hash with basename(filename) keys &gt; decoded JSON hash</p>
+
+<hr>
+
+<h2 id="toPhred-char">toPhred($char)</h2>
+
+<p>Convert a character to a phred score (ascii value - 33)</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="char-the-single-character-to-convert">$char = the single character to convert</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>Phred score</p>
+
+<hr>
+
+<h2 id="generate_jsonHash-stats-p">generate_jsonHash($stats,$p)</h2>
+
+<p>Transforms information in the stats hash to the appropriate keys and values for the jsonHash.</p>
+
+<dl>
+
+<dt id="aligned-bases">&quot;aligned bases&quot;</dt>
+<dd>
+
+<p>The (estimated) number of bases that are aligned. alignedCount + insertCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
+
+</dd>
+<dt id="average-read-length">&quot;average read length&quot;</dt>
+<dd>
+
+<p>Float. the average read length is the sum of observed bases (aligned + soft clipped + hard clipped + inserted) / # of mapped reads, multiplied by the sampling rate (bamqc.pl).</p>
+
+</dd>
+<dt id="collapsed-bases-covered">&quot;collapsed bases covered&quot;</dt>
+<dd>
+
+<p>Integer. See <a href="#runningBaseCoverage-stats-chrom-startpos">&quot;runningBaseCoverage($stats,$chrom,$startpos)&quot;</a></p>
+
+</dd>
+<dt id="deleted-bases">&quot;deleted bases&quot;</dt>
+<dd>
+
+<p>The (estimated) number of bases that are hard-clipped. deletionCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
+
+</dd>
+<dt id="hard-clip-bases">&quot;hard clip bases&quot;</dt>
+<dd>
+
+<p>The (estimated) number of bases that are hard-clipped. hardClipCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
+
+</dd>
+<dt id="insert-histogram">&quot;insert histogram&quot;</dt>
+<dd>
+
+<p>See <a href="#insertMapping-tlen-rnext-hash-p">&quot;insertMapping($tlen,$rnext,$hash,$p)&quot;</a>. Or empty set {}</p>
+
+</dd>
+<dt id="insert-mean">&quot;insert mean&quot;</dt>
+<dd>
+
+<p>Float. See <a href="#HistStats-val">&quot;HistStats(%val)&quot;</a>. Float if exists or String &quot;0&quot; (bamqc.pl).</p>
+
+</dd>
+<dt id="insert-stdev">&quot;insert stdev&quot;</dt>
+<dd>
+
+<p>Float. See <a href="#HistStats-val">&quot;HistStats(%val)&quot;</a>. Float if exists or String &quot;0&quot; (bamqc.pl).</p>
+
+</dd>
+<dt id="inserted-bases">&quot;inserted bases&quot;</dt>
+<dd>
+
+<p>The (estimated) number of bases that are inserted. insertionCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
+
+</dd>
+<dt id="mapped-reads">&quot;mapped reads&quot;</dt>
+<dd>
+
+<p>Integer. A read is considered mapped if it does not have flags: non-primary (256) or unmapped (4), or fell below the quality cutoff. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
+
+</dd>
+<dt id="mate-unmaped-reads-sic">&quot;mate unmaped reads&quot; [sic]</dt>
+<dd>
+
+<p>Integer. A mate is considered unmapped if it has the flags: paired (1) and mate unmapped (8). See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
+
+</dd>
+<dt id="mismatch-bases">&quot;mismatch bases&quot;</dt>
+<dd>
+
+</dd>
+<dt id="non-collapsed-bases-covered">&quot;non collapsed bases covered&quot;</dt>
+<dd>
+
+<p>nonCollapsedCoverageHist</p>
+
+</dd>
+<dt id="non-primary-reads">&quot;non primary reads&quot;</dt>
+<dd>
+
+<p>Integer. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a>.</p>
+
+</dd>
+<dt id="number-of-ends">&quot;number of ends&quot;</dt>
+<dd>
+
+<p>String. &quot;paired end&quot; if there are more than 0 properly paired reads, &quot;single end&quot; otherwise.</p>
+
+</dd>
+<dt id="number-of-targets">&quot;number of targets&quot;</dt>
+<dd>
+
+<p>Integer. Set in <a href="#read_bed-file">&quot;read_bed($file)&quot;</a>. Corresponds to number of lines in the BED file.</p>
+
+</dd>
+<dt id="paired-reads">&quot;paired reads&quot;</dt>
+<dd>
+
+<p>Integer. A read is considered paired if it is a mapped read and has sam flag: paired (1). See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a>.</p>
+
+</dd>
+<dt id="properly-paired-reads">&quot;properly paired reads&quot;</dt>
+<dd>
+
+<p>Integer. A read is considered properly paired if it is a mapped read and has sam flag: properly paired (2). See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
+
+</dd>
+<dt id="qual-cut">&quot;qual cut&quot;</dt>
+<dd>
+
+<p>Integer. Quality cutoff for reads. Supplied to bamqc.pl by -q or default 30.</p>
+
+</dd>
+<dt id="qual-fail-reads">&quot;qual fail reads&quot;</dt>
+<dd>
+
+<p>Integer. A read is considered qual fail if it falls below the quality cutoff, supplied by -q. Default 30. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
+
+</dd>
+<dt id="read-aligned-by-cycle">&quot;$read aligned by cycle&quot;</dt>
+<dd>
+
+<p>List. See <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a>.</p>
+
+</dd>
+<dt id="read-average-length">&quot;$read average length&quot;</dt>
+<dd>
+
+</dd>
+<dt id="read-deletion-by-cycle">&quot;$read deletion by cycle&quot;</dt>
+<dd>
+
+<p>List. See <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a>.</p>
+
+</dd>
+<dt id="read-hard-clip-by-cycle">&quot;$read hard clip by cycle&quot;</dt>
+<dd>
+
+<p>List. See <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a>.</p>
+
+</dd>
+<dt id="read-insertion-by-cycle">&quot;$read insertion by cycle&quot;</dt>
+<dd>
+
+<p>List. See <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a>.</p>
+
+</dd>
+<dt id="read-length-histogram">&quot;$read length histogram&quot;</dt>
+<dd>
+
+<p>Hash. Contains buckets for every read length (bamqc.pl).</p>
+
+</dd>
+<dt id="read-mismatch-by-cycle">&quot;$read mismatch by cycle&quot;</dt>
+<dd>
+
+<p>Hash. Searches for &quot;MD:Z:*&quot; string and passes it to <a href="#md_stats-R-mdstring-strand-stats">&quot;md_stats($R,$mdstring,$strand,$stats)&quot;</a>.</p>
+
+</dd>
+<dt id="read-quality-by-cycle">&quot;$read quality by cycle&quot;</dt>
+<dd>
+
+<p>Hash. (bamqc.pl).</p>
+
+</dd>
+<dt id="read-quality-histogram">&quot;$read quality histogram&quot;</dt>
+<dd>
+
+<p>Hash. (bamqc.pl).</p>
+
+</dd>
+<dt id="read-soft-clip-by-cycle">&quot;$read soft clip by cycle&quot;</dt>
+<dd>
+
+<p>List. See <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a>.</p>
+
+</dd>
+<dt id="reads-on-target">&quot;reads on target&quot;</dt>
+<dd>
+
+<p>Integer. Incremented if <a href="#onTarget-chrom-start-mapped-stats">&quot;onTarget($chrom,$start,$mapped,$stats)&quot;</a> in bamqc.pl.</p>
+
+</dd>
+<dt id="reads-per-start-point">&quot;reads per start point&quot;</dt>
+<dd>
+
+<p>Float. See <a href="#assess_start_point-chrom-s1-s2-sphash">&quot;assess_start_point($chrom,$s1,$s2,$sphash)&quot;</a>.</p>
+
+</dd>
+<dt id="soft-clip-bases">&quot;soft clip bases&quot;</dt>
+<dd>
+
+<p>The (estimated) number of bases that are soft-clipped. softClipCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate.</p>
+
+</dd>
+<dt id="target-file">&quot;target file&quot;</dt>
+<dd>
+
+<p>Path to the BED target file.</p>
+
+</dd>
+<dt id="target-size">&quot;target size&quot;</dt>
+<dd>
+
+<p>The total sum of the target sizes from the target file. See <a href="#read_bed-file">&quot;read_bed($file)&quot;</a>. Targets may be overlapping and so the target space could be higher than the actual footprint.</p>
+
+</dd>
+<dt id="total-reads">&quot;total reads&quot;</dt>
+<dd>
+
+<p>Integer. Total number of reads * 1.</p>
+
+</dd>
+<dt id="unmapped-reads">&quot;unmapped reads&quot;</dt>
+<dd>
+
+<p>Integer. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
+
+</dd>
+</dl>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="stats-reference-to-the-stats-hash-where-data-is-stored">$stats = reference to the stats hash, where data is stored;</dt>
+<dd>
+
+</dd>
+<dt id="p-reference-to-the-parameters-hash">$p = reference to the parameters hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The jsonHash, ready to print.</p>
+
+<hr>
+
+<h2 id="generate_error_rate-hash-prefix">generate_error_rate( $hash, $prefix )</h2>
+
+<p>Compute the error rate with (mismatch+insertion+deletion)/aligned</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="hash-The-hash-containing-the-JSON-file-contents-to-analyse">$hash = The hash containing the JSON file contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="prefix-A-prefix-to-use-when-accessing-the-keys-of-hash">$prefix = A prefix to use when accessing the keys of hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
+<hr>
+
+<h2 id="generate_mismatch_rate-hash-prefix">generate_mismatch_rate( $hash, $prefix )</h2>
+
+<p>Compute the mismatch rate with mismatch/aligned</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="hash-The-hash-containing-the-JSON-file-contents-to-analyse1">$hash = The hash containing the JSON file contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="prefix-A-prefix-to-use-when-accessing-the-keys-of-hash1">$prefix = A prefix to use when accessing the keys of hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
+<hr>
+
+<h2 id="generate_indel_rate-hash-prefix">generate_indel_rate( $hash, $prefix )</h2>
+
+<p>Compute the indel rate with (insertion+deletion)/aligned</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="hash-The-hash-containing-the-JSON-file-contents-to-analyse2">$hash = The hash containing the JSON file contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="prefix-A-prefix-to-use-when-accessing-the-keys-of-hash2">$prefix = A prefix to use when accessing the keys of hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
+<hr>
+
+<h2 id="generate_softclip_rate-hash-prefix">generate_softclip_rate( $hash, $prefix )</h2>
+
+<p>Compute the softclip rate with soft clip/(soft clip + aligned)</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="hash-The-hash-containing-the-JSON-file-contents-to-analyse3">$hash = The hash containing the JSON file contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="prefix-A-prefix-to-use-when-accessing-the-keys-of-hash3">$prefix = A prefix to use when accessing the keys of hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
+<hr>
+
+<h2 id="generate_hardclip_rate-hash-prefix">generate_hardclip_rate( $hash, $prefix )</h2>
+
+<p>Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="hash-The-hash-containing-the-JSON-file-contents-to-analyse4">$hash = The hash containing the JSON file contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="prefix-A-prefix-to-use-when-accessing-the-keys-of-hash4">$prefix = A prefix to use when accessing the keys of hash;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>A formatted percentage</p>
+
+<hr>
+
+<h2 id="get_barcode-jsonHash">get_barcode( $jsonHash)</h2>
+
+<p>Get the sequencing index / barcode</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The barcode if it exists; otherwise &#39;NoIndex&#39;</p>
+
+<hr>
+
+<h2 id="get_group-jsonHash">get_group( $jsonHash)</h2>
+
+<p>Get the group id and group id description</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse1">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The group id and group id description separated by a space, if they exist. If they don&#39;t exist, then &#39;na&#39;.</p>
+
+<hr>
+
+<h2 id="get_raw_reads-jsonHash">get_raw_reads( $jsonHash)</h2>
+
+<p>Get the total raw reads, counted by summing mapped, unmapped and qual fail reads</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse2">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The total number of reads (int).</p>
+
+<hr>
+
+<h2 id="get_raw_yield-jsonHash">get_raw_yield( $jsonHash)</h2>
+
+<p>Get the total raw yield, multipying get_raw_reads by the average read length</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse3">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The total yield (int).</p>
+
+<hr>
+
+<h2 id="get_map_percent-jsonHash">get_map_percent( $jsonHash)</h2>
+
+<p>Get the total map percentage, calculated by dividing mapped reads by total number of reads and multiplying by 100. If total reads is 0, treat as 1.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse4">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The map percentage as an integer.</p>
+
+<hr>
+
+<h2 id="get_ontarget_percent-jsonHash">get_ontarget_percent( $jsonHash)</h2>
+
+<p>Get the total on target percentage by dividing reads on target by the number of mapped reads, and multiplying by 100. If mapped reads is 0, treat as 1.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse5">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The on target percentage as an integer</p>
+
+<hr>
+
+<h2 id="get_est_yield-jsonHash">get_est_yield( $jsonHash)</h2>
+
+<p>Get the estimated total yield by multiplying total aligned based by the on target percentage, and dividing that by reads per start point. If reads per start point is is 0, treat as 1.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="collapse-whether-to-use-reads-per-start-point-to-collapse-down-the-coverage">$collapse = whether to use reads per start point to collapse down the coverage;</dt>
+<dd>
+
+</dd>
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse6">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The estimated yield as an integer</p>
+
+<hr>
+
+<h2 id="get_est_coverage-jsonHash">get_est_coverage( $jsonHash)</h2>
+
+<p>Get the estimated total coverage by dividing estimated yield by the target size. If the target is is 0, treat as 1.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="collapse-whether-to-use-reads-per-start-point-to-collapse-down-the-coverage1">$collapse = whether to use reads per start point to collapse down the coverage;</dt>
+<dd>
+
+</dd>
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse7">$jsonHash = The hash containing the JSON file contents to analyse.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The estimated coverage as an integer.</p>
+
+<hr>
+
+<h2 id="findStart-cigarOp-start">findStart($cigarOp, $start)</h2>
+
+<p>Find the start index of the read using the cigar string</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="cigarOp-the-cigar-string">$cigarOp = the cigar string</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The new start position, adjusted to take soft clipping into account</p>
+
+<hr>
+
+<h2 id="findEnd-cigarOp-end">findEnd($cigarOp, $end)</h2>
+
+<p>Find the start index of the read using the cigar string</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="cigarOp-the-cigar-string1">$cigarOp = the cigar string;</dt>
+<dd>
+
+</dd>
+<dt id="end-the-assumed-end-of-the-string">$end = the assumed end of the string;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The new start position, adjusted to take soft clipping into account</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,348 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<link rel="stylesheet" href="css/style.css" type="text/css" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:brew@highsierra-2.local" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#RunReport">RunReport</a>
+    <ul>
+      <li><a href="#NAME">NAME</a></li>
+      <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+      <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+      <li><a href="#USAGE">USAGE</a></li>
+      <li><a href="#AUTHOR">AUTHOR</a></li>
+      <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+    </ul>
+  </li>
+  <li><a href="#Subroutines">Subroutines</a>
+    <ul>
+      <li><a href="#get_possible_headers">get_possible_headers()</a></li>
+      <li><a href="#get_possible_plot_names">get_possible_plot_names()</a></li>
+      <li><a href="#plot_data-jsonHash-scriptPath">plot_data($jsonHash,$scriptPath)</a></li>
+      <li><a href="#data_table-p-jsonHash-sorted_lane_list-run">data_table($p,$jsonHash,$sorted_lane_list,$run)</a></li>
+      <li><a href="#coverage_table-p-jsonHash-sorted_lane_list-run">coverage_table($p,$jsonHash,$sorted_lane_list,$run)</a></li>
+      <li><a href="#graph_table-p-jsonHash-sorted_lane_list-run">graph_table($p,$jsonHash,$sorted_lane_list,$run)</a></li>
+      <li><a href="#lane_info-p-jsonHash-sorted_lane_list-run">lane_info($p,$jsonHash,$sorted_lane_list,$run)</a></li>
+      <li><a href="#write_tsv-p-jsonHash-sorted_lane_list-run">write_tsv($p,$jsonHash,$sorted_lane_list,$run)</a></li>
+    </ul>
+  </li>
+</ul>
+
+<label for="show-menu" class="show-menu">Show Menu</label>
+<input type="checkbox" id="show-menu" role="button">
+
+<h1>Genome Sequence Informatics</h1>
+
+<h1 id="RunReport">RunReport</h1>
+
+<h2 id="NAME">NAME</h2>
+
+<p>RunReport - Use the JSON produced by GSI::bamqc to generate an HTML page</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<pre><code>  use GSI::RunReport;</code></pre>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p>Takes the JSON files produced by GSI::BamQC and produces an HTML page with nicely rendered graphs and tables.</p>
+
+<h2 id="USAGE">USAGE</h2>
+
+<pre><code>    use SeqWare::Html;</code></pre>
+
+<h2 id="AUTHOR">AUTHOR</h2>
+
+<p><a href="https://gsi.oicr.on.ca">Genome Sequence Informatics</a>, <a href="https://oicr.on.ca">Ontario Institute for Cancer Research</a>. On Github at <a href="https://github.com/oicr-gsi/bamqc">https://github.com/oicr-gsi/bamqc</a>.</p>
+
+<h2 id="COPYRIGHT">COPYRIGHT</h2>
+
+<p>Copyright (C) 2017 The Ontario Institute for Cancer Research</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+
+<p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
+
+<p>You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</p>
+
+<h1 id="Subroutines">Subroutines</h1>
+
+<hr>
+
+<h2 id="get_possible_headers">get_possible_headers()</h2>
+
+<p>Returns the headers that the RunReport supports, mapped to their human-friendly name. The keys in this hash are used by the various reporting methods to create their tables. In order to get tables to print different sets of headers change the parameter passed in: p{table_columns}{data|graph|tsv}.</p>
+
+<p><b>Returns</b></p>
+
+<p>A hash mapping shortnames to human-friendly names for the table header</p>
+
+<hr>
+
+<h2 id="get_possible_plot_names">get_possible_plot_names()</h2>
+
+<p>Returns the image short names that the RunReport supports, mapped to their actual PNG filename. The keys in this hash are used by the various reporting methods to create their tables. In order to get tables to print different sets of headers change the parameter passed in: p{plotnames}.</p>
+
+<p><b>Returns</b></p>
+
+<p>A hash mapping shortnames to plot filenames for the table header</p>
+
+<hr>
+
+<h2 id="plot_data-jsonHash-scriptPath">plot_data($jsonHash,$scriptPath)</h2>
+
+<p>Creates the graphs for the report using jsonToGraphs.pl in the same directory as each JSON file.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="jsonHash-The-hash-containing-the-JSON-file-contents-to-analyse">$jsonHash = The hash containing the JSON file contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="scriptPath-the-directory-where-jsonToGraphs.pl-is-located">$scriptPath = the directory where jsonToGraphs.pl is located.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<hr>
+
+<h2 id="data_table-p-jsonHash-sorted_lane_list-run">data_table($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<p>Returns the HTML for the main metrics table.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="p-parameters-used-for-the-data_table.-Required-keys">$p=parameters used for the data_table. Required keys:</dt>
+<dd>
+
+<dl>
+
+<dt id="p--table_columns-data--the-ordered-array-of-shortname-for-the-header">$p-&gt;{table_columns}{data}-the ordered array of shortname for the header</dt>
+<dd>
+
+</dd>
+<dt id="p--noCollapse--whether-the-estimated-yield-and-coverage-should-be-collapsed-by-RPSP">$p-&gt;{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;</dt>
+<dd>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="jsonHash-A-hash-containing-the-JSON-files-contents-to-analyse">$jsonHash=A hash containing the JSON files contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="sorted_lane_list-the-list-of-json-files-in-sorted-lane-order">$sorted_lane_list=the list of json files in sorted lane order;</dt>
+<dd>
+
+</dd>
+<dt id="run-the-name-of-the-sequencer-run">$run=the name of the sequencer run.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>The HTML for the main metrics table.</p>
+
+<p><b>See</b></p>
+
+<p><a href="#get_possible_headers">&quot;get_possible_headers()&quot;</a></p>
+
+<hr>
+
+<h2 id="coverage_table-p-jsonHash-sorted_lane_list-run">coverage_table($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<p>Returns the HTML for the coverage table.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="p-parameters-used-for-the-coverage_table.-Required-keys">$p=parameters used for the coverage_table. Required keys:</dt>
+<dd>
+
+<dl>
+
+<dt id="p--coverageXs--an-array-with-the-N-X-values-to-report-for-coverage">$p-&gt;{coverageXs}-an array with the N X values to report for coverage</dt>
+<dd>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="jsonHash-A-hash-containing-the-JSON-files-contents-to-analyse1">$jsonHash=A hash containing the JSON files contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="sorted_lane_list-the-list-of-json-files-in-sorted-lane-order1">$sorted_lane_list=the list of json files in sorted lane order;</dt>
+<dd>
+
+</dd>
+<dt id="run-the-name-of-the-sequencer-run1">$run=the name of the sequencer run.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>the HTML for the coverage table.</p>
+
+<hr>
+
+<h2 id="graph_table-p-jsonHash-sorted_lane_list-run">graph_table($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<p>Returns the HTML for the graph table. Note that this does not do the graphing. plot_data must be called to generate graphs.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="p-parameters-used-for-the-graph_table.-Required-keys">$p=parameters used for the graph_table. Required keys:</dt>
+<dd>
+
+<dl>
+
+<dt id="p--table_columns-graph--the-ordered-array-of-shortname-for-the-header">$p-&gt;{table_columns}{graph}-the ordered array of shortname for the header</dt>
+<dd>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="jsonHash-A-hash-containing-the-JSON-files-contents-to-analyse2">$jsonHash=A hash containing the JSON files contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="sorted_lane_list-the-list-of-json-files-in-sorted-lane-order2">$sorted_lane_list=the list of json files in sorted lane order;</dt>
+<dd>
+
+</dd>
+<dt id="run-the-name-of-the-sequencer-run2">$run=the name of the sequencer run.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>the HTML for the graph table.</p>
+
+<p><b>See</b></p>
+
+<p><a href="#plot_data-jsonHash-scriptPath">&quot;plot_data($jsonHash,$scriptPath)&quot;</a>, <a href="#get_possible_headers">&quot;get_possible_headers()&quot;</a></p>
+
+<hr>
+
+<h2 id="lane_info-p-jsonHash-sorted_lane_list-run">lane_info($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<p>Returns the HTML for the target block.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="p-parameters-used-for-the-graph_table.-Required-keys1">$p=parameters used for the graph_table. Required keys:</dt>
+<dd>
+
+<dl>
+
+<dt id="p--table_columns-graph--the-ordered-array-of-shortname-for-the-graph-table-header">$p-&gt;{table_columns}{graph}-the ordered array of shortname for the graph table header</dt>
+<dd>
+
+</dd>
+<dt id="p--printAllImages--whether-or-not-to-print-all-of-the-images-in-large">$p-&gt;{printAllImages}-whether or not to print all of the images in large</dt>
+<dd>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="jsonHash-A-hash-containing-the-JSON-files-contents-to-analyse3">$jsonHash=A hash containing the JSON files contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="sorted_lane_list-the-list-of-json-files-in-sorted-lane-order3">$sorted_lane_list=the list of json files in sorted lane order;</dt>
+<dd>
+
+</dd>
+<dt id="run-the-name-of-the-sequencer-run3">$run=the name of the sequencer run.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>the HTML for the lane block.</p>
+
+<p><b>See</b></p>
+
+<p><a href="#get_possible_headers">&quot;get_possible_headers()&quot;</a></p>
+
+<hr>
+
+<h2 id="write_tsv-p-jsonHash-sorted_lane_list-run">write_tsv($p,$jsonHash,$sorted_lane_list,$run)</h2>
+
+<p>Writes a TSV with all &quot;data_table&quot; metrics plus the information from &quot;lane_info&quot;. Arbitrarily picks the last JSON file&#39;s directory to write the TSV into.</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="p-parameters-used-for-the-data_table.-Required-keys1">$p=parameters used for the data_table. Required keys:</dt>
+<dd>
+
+<dl>
+
+<dt id="p--table_columns-tsv--the-ordered-array-of-shortname-for-the-header">$p-&gt;{table_columns}{tsv}-the ordered array of shortname for the header</dt>
+<dd>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="jsonHash-A-hash-containing-the-JSON-files-contents-to-analyse4">$jsonHash=A hash containing the JSON files contents to analyse;</dt>
+<dd>
+
+</dd>
+<dt id="sorted_lane_list-the-list-of-json-files-in-sorted-lane-order4">$sorted_lane_list=the list of json files in sorted lane order;</dt>
+<dd>
+
+</dd>
+<dt id="run-the-name-of-the-sequencer-run4">$run=the name of the sequencer run.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>the HTML pointing to the TSV file</p>
+
+<p><b>See</b></p>
+
+<p><a href="#get_possible_headers">&quot;get_possible_headers()&quot;</a></p>
+
+
+</body>
+
+</html>
+
+
