@@ -669,11 +669,11 @@ sub write_tsv {
 }
 
 sub assemble_run_report {
-    my ($html) = @_;
+    my ($html, $pathToRoot) = @_;
     my $date = `date`;    #TODO(apmasell): do this without fork
     chomp $date;
     return SeqWare::Html::document( "$date Generic Run Report",
-        SeqWare::Html::NAV_PROJECTS, "../../../web/seqwareBrowser", $html,
+        SeqWare::Html::NAV_PROJECTS, $pathToRoot, $html,
         get_custom_head() );
 
 }

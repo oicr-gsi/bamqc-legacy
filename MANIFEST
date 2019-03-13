@@ -1,5 +1,5 @@
 MANIFEST
-README
+README.md
 LICENSE
 Todo
 Changes
@@ -29,7 +29,6 @@ t/test/bamqc_vanilla_jsonstring/expected_output.json
 t/test/bamqc_vanilla_jsonstring/expected_output.txt
 t/test/report_vanilla/test.json
 t/test/report_vanilla/expected_report.tsv
-t/test/report_vanilla/actual_output.html
 t/test/report_vanilla/expected_output.html
 t/test/report_nocollapse/expected.graphs/readPie.png.Rcode
 t/test/report_nocollapse/expected.graphs/nonCollapsedCover.png.Rcode

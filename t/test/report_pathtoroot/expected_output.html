@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="x-UA-Compatible" content="IE-edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/check/me/out//res/css/gsi-common.css">
+
+        <script src="/check/me/out//res/js/sorttable.js"></script>
+
+    <style type="text/css">
+.na {
+    color: #ccc;
+}
+
+th, td {
+    padding: 3px !important;
+}
+
+table {
+    border-collapse:collapse;
+}
+
+</style>
+
+	<link rel="shortcut icon" href="/check/me/out//res/images/dna_helix.ico" />
+
+	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+		<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	<![endif]-->
+
+</head>
+
+<body>
+	<nav class="navbar navbar-default">
+		<div class="container-fluid">
+			<!-- Brand and toggle get grouped for better mobile display -->
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="http://www-gsi.hpc.oicr.on.ca/landing/"><img alt="gsi" src="/check/me/out//res/images/dna_helix.png" width="25px"></a>
+			</div>
+
+			<!-- Collect the nav links, forms, and other content for toggling -->
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				<ul class="nav navbar-nav">
+<li><a href="/check/me/out//seqwareBrowser.html">SeqWare Browser</a></li>
+<li><a href="/check/me/out//../seqwareReport/seqwareReport.html">Current Status</a></li>
+<li><a href="/check/me/out//runReports.html">Runs</a></li>
+<li class="active"><a href="/check/me/out//projects/projects.html">Projects <span class="sr-only">(current)</span></a></li>
+<li><a href="/check/me/out//runs/instruments.html">Instruments</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<div class="content gsi-content">
+<h1><a name="Simulated_Run">Simulated_Run</a></h1>
+<a href="Simulated_Run_report.tsv" download>Simulated_Run_report.tsv</a>
+<table class="table sortable"><thead>
+<tr><th class="col-md-1">Lane</th><th class="col-md-1">Barcode</th><th class="col-md-1">Group ID</th><th class="col-md-1">External Name</th><th class="col-md-1">Library</th><th class="col-md-1">Insert Mean</th><th class="col-md-1">Insert Stddev</th><th class="col-md-1">Read Length</th><th class="col-md-1">PF Reads</th><th class="col-md-1">PF Yield</th><th class="col-md-1">Map %</th><th class="col-md-1">R1 Mismatch %</th><th class="col-md-1">R2 Mismatch %</th><th class="col-md-1">R1 Indel %</th><th class="col-md-1">R2 Indel %</th><th class="col-md-1">R1 Soft Clip %</th><th class="col-md-1">R2 Soft Clip %</th><th class="col-md-1">Reads/SP</th><th class="col-md-1">% Mapped on Target</th><th class="col-md-1">Estimated Yield*</th><th class="col-md-1">Coverage*</th></tr></thead><tbody>
+<tr><td><a href="#Simulated_Run_1_NoIndex">1</a></td><td><a href="#Simulated_Run_1_NoIndex">NoIndex</a></td><td><a class='na'>na</a></td><td><a class='na'>na</a></td><td><a href="#Simulated_Run_1_NoIndex">Simulated_5X_chr21</a></td><td>251.35</td><td>7.64</td><td>101, 101</td><td>80,020</td><td>8,079,999</td><td>100.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>1.00</td><td>69.98</td><td>5,652,042</td><td>10.72</td></tr>
+</tbody>
+<tfoot><tr><td>Total</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>80,020</td><td>8,079,999</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>5,652,042</td><td></td></tr></tfoot>
+</table>
+<p>* Estimates exclude unmapped, off target, non-primary or MAPQ < 30 reads and use reads per start point to approximate loss due to collapse</p>
+<h2><a name="Simulated_Run_1_NoIndex">Simulated_Run Lane: 1 Barcode: NoIndex</a></h2>
+<p><a href="#Simulated_Run">Back to Simulated_Run.</a></p>
+<ul>
+<li>Library: Simulated_5X_chr21</li>
+<li>Target file: test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed</li>
+<li>Target size: 527,189 bp</li>
+<li>Number of targets: 2,085</li>
+</ul>
+	</div>
+	<div id="footer">
+		Brought to you by <a href="http://www-gsi.hpc.oicr.on.ca/landing/">Genome Sequence Informatics</a>.</p>
+	</div>
+
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<!-- Include all compiled plugins (below), or include individual files as needed -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js//bootstrap.min.js"></script>
+</body>
+</html>
