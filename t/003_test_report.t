@@ -102,6 +102,8 @@ run_genericrunreport("-c","t/test/report_coverage");
 
 run_genericrunreport("-c -g","t/test/report_coverage_graphs");
 
+run_genericrunreport("-b '/check/me/out/'","t/test/report_pathtoroot");
+
 # runs on a json file that has coverage stats
 run_genericrunreport("-g","t/test/report_histo_coverage");
 

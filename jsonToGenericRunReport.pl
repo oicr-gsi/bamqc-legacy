@@ -32,7 +32,7 @@ use GSI::RunReport;
 use Data::Dumper;
 
 my $scriptPath = dirname( abs_path($0) );
-
+my $pathToRoot = "../../../web/seqwareBrowser";
 my $plot_names    = GSI::RunReport::get_possible_plot_names();
 my $table_headers = GSI::RunReport::get_possible_headers();
 
@@ -64,13 +64,14 @@ my %param = (
 );
 
 #### process options
-my $opt_string = "crpgnHh";
+my $opt_string = "crpgnHb:h";
 getopts( $opt_string, \%opt ) or usage("Incorrect arguments.");
 usage("Help requested.") if ( exists $opt{h} );
 
 $param{showCoverageTable} = 1 if ( exists $opt{c} );
 $param{printAllImages}    = 1 if ( exists $opt{p} );
 $param{plotData}          = 1 if ( exists $opt{g} );
+$pathToRoot               = $opt{b} if (exists $opt{b} );
 
 if ( exists $opt{n} ) {
     $param{noCollapse} = 1;
@@ -144,7 +145,7 @@ for my $run ( sort keys %runList ) {
 
 }
 
-my $page = GSI::RunReport::assemble_run_report($html);
+my $page = GSI::RunReport::assemble_run_report($html,$pathToRoot);
 print $page;
 
 exit;
@@ -159,6 +160,7 @@ sub usage {
     print "\t-g plot data.  Default it to not plot the data\n";
     print "\t-H show hard clip stats and graph.  Default is off.\n";
     print "\t-n no collapse estimate!\n";
+    print "\t-b base url or root path where css and other style is stored. Default \"../../../web/seqwareBrowser\"\n";
     print "\t-h displays this usage message.\n";
 
     die "\n@_\n\n";
