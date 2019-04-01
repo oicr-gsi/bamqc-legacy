@@ -649,9 +649,6 @@ sub write_tsv {
     for my $report (@$sorted_lane_list) {
         my $rowHash = get_all_fields( $jsonHash->{$report} );
 
-        format_big_numbers($rowHash);
-        format_2decimals($rowHash);
-
         my @row = @{$rowHash}{@cols};
         $tsv .= join( "\t", @row ) . "\n";
 
@@ -699,7 +696,9 @@ sub format_na {
     return $rowHash;
 }
 
-#format floats from specific headers to have two decimal places
+# format floats from specific headers to have two decimal places, if they're larger than 0.1x
+# five decimal places if larger than 0.0001x
+# or not at all if they're smaller than that
 sub format_2decimals {
     my $rowHash     = shift;
     my @printf_cols = (
@@ -714,8 +713,13 @@ sub format_2decimals {
         'indel2'
     );
     foreach my $col (@printf_cols) {
-        $rowHash->{$col} = sprintf( "%.2f", $rowHash->{$col} )
-          if ( ( $rowHash->{$col} ne $NA ) || ( $rowHash->{$col} ne 'na' ) );
+        if ( ( $rowHash->{$col} ne $NA ) || ( $rowHash->{$col} ne 'na' ) ) {
+            if ( $rowHash->{$col} > 0.1 ) {
+                $rowHash->{$col} = sprintf( "%.2f", $rowHash->{$col} );
+            } elsif ($rowHash->{$col} > 0.0001) {
+                $rowHash->{$col} = sprintf( "%.5f", $rowHash->{$col} );
+            }
+        }
     }
     return $rowHash;
 }
