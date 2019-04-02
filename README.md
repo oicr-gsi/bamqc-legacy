@@ -15,12 +15,16 @@ To use the report generating scripts, you will also need to install the [gsi-web
     make
     make install
 
+This module also depends on samtools and Rscript being available on the path.
+
 ## Installation
 
 To install this module:
 
     perl Makefile.PL && make && make install && make test
     
+
+
 To run tests alone:
 
     make test
