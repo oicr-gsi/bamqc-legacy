@@ -54,7 +54,7 @@ use GSI::bamqc;
 use JSON::PP;    # imports encode_json, decode_json, to_json and from_json
 
 ### ASSESS options and generate the parameter hash
-my $opt_string = "s:i:l:r:b:j:q:ch:H:D";
+my $opt_string = "s:i:l:m:r:b:j:q:ch:H:D";
 getopts( $opt_string, \%opt ) or usage("Incorrect arguments.");
 
 ### DEBUG, comment out when not in use
@@ -122,8 +122,8 @@ q(! " # $ % & ' \( \) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F 
 #<$TTY>;
 
 ### initalize entries to 0
-### form the json hash at the enc
-### keep all informatin in stats hash
+### form the json hash at the end
+### keep all information in stats hash
 my %stats = map { ( $_, 0 ) } (
     "number of ends",
     "average read length",
@@ -163,12 +163,43 @@ my %stats = map { ( $_, 0 ) } (
     "pairsMappedAbnormallyFar",
     "pairsMappedToDifferentChr",
 );
+
+# add mark duplicates metrics (if any) to the stats hash
+my $markdup_label = "PicardMarkDuplicates";
+my @dup_metrics_keys = (
+    "$markdup_label UNPAIRED_READS_EXAMINED",
+    "$markdup_label READ_PAIRS_EXAMINED",
+    "$markdup_label UNMAPPED_READS",
+    "$markdup_label UNPAIRED_READ_DUPLICATES",
+    "$markdup_label READ_PAIR_DUPLICATES",
+    "$markdup_label READ_PAIR_OPTICAL_DUPLICATES",
+    "$markdup_label PERCENT_DUPLICATION",
+    "$markdup_label ESTIMATED_LIBRARY_SIZE"
+);
+my %dup_metrics = ();
+if ($p{dupMetrics}) {
+    %dup_metrics = read_dup_metrics($p{dupMetrics});
+}
+foreach my $key (@dup_metrics_keys) {
+    $stats{$key} = $dup_metrics{$key} || "0";
+}
+
+sub read_dup_metrics {
+    # TODO parse the duplicate metrics file
+
+    my $path = shift;
+
+    my %metrics;
+
+    return %metrics;
+}
+
 $stats{bed} = $p{bed};
 ### this will track the reads per startpoint
 $stats{startPoint} = { count => 0, current => "null", RPSP => 1 };
 
 my $timeToSampleCount
-  ; ### this is a flag to identify when it is time to do analysis for the smapled read
+  ; ### this is a flag to identify when it is time to do analysis for the sampled read
 while (<STDIN>)
 {    ### need to check that STDIN exists, and run usage if it doesn't
 
@@ -446,6 +477,15 @@ sub validate_opts {
 
     #%{$param{jsonHash}}=%{ decode_json($opt{'j'}) } if($opt{'j'});
 
+    if ( $opt{'m'} ) {
+	my $path = $opt{'m'};
+	if ( -e $path) {
+	    $param{dupMetrics} = $path;
+	} else {
+	    die "Duplicate metrics file $path does not exist.";
+	}
+    }
+
     if ( $opt{'b'} ) {
         $param{bamPath}                   = $opt{'b'};
         $param{jsonHash}{"bam path"}      = $opt{'b'};
@@ -469,7 +509,7 @@ sub validate_opts {
     }
 
     if ( $opt{'H'} )
-    { ### extract additional informaiton from a Bedtools coverage histogram file
+    { ### extract additional information from a Bedtools coverage histogram file
         usage("bedtools histogram file $opt{H} not found") if ( !-e $opt{'H'} );
         $param{histFile} = $opt{'H'};
 
@@ -486,6 +526,8 @@ sub usage {
 "\t-s sample rate.  Defines how often to sample the reads (default $p{sampleRate}).\n";
     print
 "\t-i normal insert max.  Defines upper limit to what is considered a normal insert (default $p{normalInsertMax}).\n";
+    print
+"\t-m mark duplicates metric file. Text file output by Picard MarkDuplicates. Optional.";
     print
 "\t-q mapping quality cut.  Reads that map with a quality worse than this will not be considered \"uniquely mapped\" (default $p{qualCut}).\n";
     print
