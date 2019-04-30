@@ -3,10 +3,10 @@ use strict;
 use warnings;
 use Test::More;
 use Text::Diff;
-use GSI::bamqc 'load_json';
 use File::Path 'remove_tree';
 use File::Slurp 'read_file';
 use File::Basename 'dirname';
+use JSON 'decode_json';
 
 my $script_dir=dirname($0);
 
@@ -34,8 +34,9 @@ sub run_bamqc {
     $TESTS_FAIL=1 if not is ( $diff, '', "text files are the same: $actual_txt and $expected_txt");
 
     #check that the expected and actual JSON files are the same
-    my %jsons=load_json($actual_json, $expected_json);
-    $TESTS_FAIL=1 if not is_deeply ( $jsons{$actual_json}, $jsons{$expected_json}, "json files are the same: $actual_json and $expected_json");
+    my $actual_data = decode_json(read_file($actual_json));
+    my $expected_data = decode_json(read_file($expected_json));
+    $TESTS_FAIL=1 if not is_deeply ($actual_data, $expected_data, "json files are the same: $actual_json and $expected_json");
 
     #if the file comparison tests fail, save the results. Otherwise, remove them
     if ($TESTS_FAIL) {
