@@ -6,13 +6,14 @@ BEGIN {
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
+
     $VERSION = 1.00;
     @ISA     = qw(Exporter);
 
     #@EXPORT	=	qw();
     @EXPORT_OK = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
       onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-      load_json toPhred generate_jsonHash
+      load_json toPhred generate_jsonHash jsonHash_keys dupMetrics_keys
       generate_mismatch_rate generate_indel_rate generate_softclip_rate
       generate_hardclip_rate generate_error_rate get_barcode get_group
       get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
@@ -93,8 +94,6 @@ use File::Basename;
 ### for debug
 #use Data::Dumper;
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input";
-
-my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
 =for html <hr>
 
@@ -458,6 +457,39 @@ sub cigar_stats {
     return ( $readLength, $mappedBases );
 
 }
+
+
+=for html <hr>
+
+=head2 dupMetrics_keys()
+
+Return the list of keys for the duplicate metrics file. Keys are also included in the JSON hash output.
+
+B<Arguments>
+
+None
+
+B<Returns>
+
+Array of key strings
+
+=cut
+
+sub dupMetrics_keys {
+    # Could instead export an array variable; but this is considered bad practice
+    # Eg. See Perl Exporter documentation
+    my @keys = qw(UNPAIRED_READS_EXAMINED
+		  READ_PAIRS_EXAMINED
+		  UNMAPPED_READS
+		  UNPAIRED_READ_DUPLICATES
+		  READ_PAIR_DUPLICATES
+		  READ_PAIR_OPTICAL_DUPLICATES
+		  PERCENT_DUPLICATION
+		  ESTIMATED_LIBRARY_SIZE
+		);
+    return @keys;
+}
+
 
 =for html <hr>
 
@@ -869,6 +901,70 @@ sub insertMapping {
     return $class;
 }
 
+
+=for html <hr>
+
+=head2 jsonHash_keys()
+
+Return the list of keys for the JSON hash output. See generate_jsonHash for key descriptions.
+
+B<Arguments>
+
+None
+
+B<Returns>
+
+Array of key strings
+
+=cut
+
+
+sub jsonHash_keys {
+    # Could instead export an array variable; but this is considered bad practice
+    # Eg. See Perl Exporter documentation
+    my @keys = (
+		"number of ends",
+		"average read length",
+		"insert mean",
+		"insert stdev",
+		"total reads",
+		"mapped reads",
+		"unmapped reads",
+		"non primary reads",
+		"paired reads",
+		"properly paired reads",
+		"mate unmapped reads",
+		"qual fail reads",
+		"qual cut",
+		"aligned bases",
+		"mismatch bases",
+		"inserted bases",
+		"deleted bases",
+		"soft clip bases",
+		"hard clip bases",
+		"reads per start point",
+		"reads on target",
+		"target file",
+		"target size",
+		"number of targets",
+		"non collapsed bases covered",
+		"collapsed bases covered",
+		"insert histogram",
+		"readsMissingMDtags",
+		"hardClipCount",
+		"softClipCount",
+		"deletionCount",
+		"insertCount",
+		"mismatchCount",
+		"meanInsert",
+		"stdevInsert",
+		"pairsMappedAbnormallyFar",
+		"pairsMappedToDifferentChr",
+	       );
+    push (@keys, dupMetrics_keys());
+    return @keys;
+}
+
 =for html <hr>
 
 =head2 load_json(@files)
@@ -1133,29 +1229,7 @@ The jsonHash, ready to print.
 sub generate_jsonHash {
     my ( $stats, $p ) = @_;
 
-    my %jsonHash = map { ( $_, $$stats{$_} ) } (
-        "number of ends",
-        "total reads",
-        "mapped reads",
-        "unmapped reads",
-        "non primary reads",
-        "paired reads",
-        "properly paired reads",
-        "mate unmaped reads",
-        "qual fail reads",
-        "qual cut",
-        "aligned bases",
-        "mismatch bases",
-        "inserted bases",
-        "deleted bases",
-        "soft clip bases",
-        "hard clip bases",
-        "reads per start point",
-        "reads on target",
-        "target file",
-        "target size",
-        "number of targets",
-    );
+    my %jsonHash = map { ( $_, $$stats{$_} ) } ( jsonHash_keys() );
 
     $jsonHash{"total reads"} = $$stats{"total reads"} * 1;
 

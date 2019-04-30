@@ -58,7 +58,7 @@ my $opt_string = "s:i:l:m:r:b:j:q:ch:H:D";
 getopts( $opt_string, \%opt ) or usage("Incorrect arguments.");
 
 ### DEBUG, comment out when not in use
-#use Data::Dumper;  ## will allow the code to be modified inline to show data dumps
+use Data::Dumper;  ## will allow the code to be modified inline to show data dumps
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input"; ## will allow code to be modified with <$TTY>, to hold for keyboard input.  <STDIN> will not work as this script reads from a stream
 
 my %p = validate_opts(%opt);
@@ -118,79 +118,50 @@ $p{sortedChars} = [
 q(! " # $ % & ' \( \) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \\ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~)
 ];
 
-#print STDERR Dumper($p{sortedChars});
 #<$TTY>;
 
 ### initalize entries to 0
 ### form the json hash at the end
 ### keep all information in stats hash
-my %stats = map { ( $_, 0 ) } (
-    "number of ends",
-    "average read length",
-    "insert mean",
-    "insert stdev",
-    "total reads",
-    "mapped reads",
-    "unmapped reads",
-    "non primary reads",
-    "paired reads",
-    "properly paired reads",
-    "mate unmaped reads",
-    "qual fail reads",
-    "qual cut",
-    "aligned bases",
-    "mismatch bases",
-    "inserted bases",
-    "deleted bases",
-    "soft clip bases",
-    "hard clip bases",
-    "reads per start point",
-    "reads on target",
-    "target file",
-    "target size",
-    "number of targets",
-    "non collapsed bases covered",
-    "collapsed bases covered",
-    "insert histogram",
-    "readsMissingMDtags",
-    "hardClipCount",
-    "softClipCount",
-    "deletionCount",
-    "insertCount",
-    "mismatchCount",
-    "meanInsert",
-    "stdevInsert",
-    "pairsMappedAbnormallyFar",
-    "pairsMappedToDifferentChr",
-);
-
+my %stats = map { ( $_, 0 ) } ( GSI::bamqc::jsonHash_keys() );
+#print STDERR Dumper(\%stats);
 # add mark duplicates metrics (if any) to the stats hash
-my $markdup_label = "PicardMarkDuplicates";
-my @dup_metrics_keys = (
-    "$markdup_label UNPAIRED_READS_EXAMINED",
-    "$markdup_label READ_PAIRS_EXAMINED",
-    "$markdup_label UNMAPPED_READS",
-    "$markdup_label UNPAIRED_READ_DUPLICATES",
-    "$markdup_label READ_PAIR_DUPLICATES",
-    "$markdup_label READ_PAIR_OPTICAL_DUPLICATES",
-    "$markdup_label PERCENT_DUPLICATION",
-    "$markdup_label ESTIMATED_LIBRARY_SIZE"
-);
-my %dup_metrics = ();
+my %dup_metrics;
 if ($p{dupMetrics}) {
     %dup_metrics = read_dup_metrics($p{dupMetrics});
 }
-foreach my $key (@dup_metrics_keys) {
+foreach my $key ( GSI::bamqc::dupMetrics_keys() ) {
     $stats{$key} = $dup_metrics{$key} || "0";
 }
+#print STDERR Dumper(\%stats);
 
 sub read_dup_metrics {
-    # TODO parse the duplicate metrics file
-
+    # parse the duplicate metrics file
     my $path = shift;
 
+    open my $in, '<', $path || die "Cannot open duplicate metrics path '$path'";
+    my $metric_line = 0;
+    my (@keys, @values);
+    while (<$in>) {
+	chomp;
+	if (/## METRICS CLASS\s+net\.sf\.picard\.sam\.DuplicationMetrics/) {
+	    $metric_line = 1;
+	} elsif ($metric_line == 1) {
+	    @keys = split;
+	    $metric_line = 2;
+	} elsif ($metric_line == 2) {
+	    @values = split;
+	    last;
+	}
+    }
+    close $in || die "Cannot close duplicate metrics path '$path'";
+    if (scalar @keys != scalar @values) {
+	die "Key and value lists from $path are of unequal length";
+    }
     my %metrics;
-
+    for (my $i=0;$i<@keys;$i++) {
+	$metrics{$keys[$i]} = $values[$i];
+    }
     return %metrics;
 }
 
