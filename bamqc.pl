@@ -54,7 +54,7 @@ use GSI::bamqc;
 use JSON::PP;    # imports encode_json, decode_json, to_json and from_json
 
 ### ASSESS options and generate the parameter hash
-my $opt_string = "s:i:l:m:r:b:j:q:ch:H:D";
+my $opt_string = "s:i:l:m:r:b:j:o:q:ch:H:D";
 getopts( $opt_string, \%opt ) or usage("Incorrect arguments.");
 
 ### DEBUG, comment out when not in use
@@ -70,6 +70,7 @@ usage(
 
 ### load the bed file, store in the parameter hash
 $p{bed} = GSI::bamqc::read_bed( $p{bedFile} ) if ( $p{bedFile} );
+my $targets_message = "Loaded " . $p{bed}{numberOfTargets} . " targets.\n\n";
 if ( $p{bed} =~ /ERROR/ ) {
     print usage( $p{bed} );
 }
@@ -362,36 +363,49 @@ $stats{averageReadLength}{overall} =
 ### clear out remaining runningBaseCoverage
 my $cleared = GSI::bamqc::runningBaseCoverage( \%stats );
 
-### generate a series of messages to STDERR indicating various statistics
-warn "\n\n";
+my $out;
+if ($p{outputText}) {
+    open $out, ">", $p{outputText} || die "Cannot open text output ".$p{outputText}.": $!";
+} else {
+    $out = *STDERR;
+}
+### write a human-readable text summary indicating various statistics
 
-warn "Total reads: " . $stats{"total reads"} . "\n";
-warn "Mapped reads: " . $stats{"mapped reads"} . "\n";
-warn "Non primary reads: " . $stats{"non primary reads"} . "\n";
-warn "MAPQ < $p{qualCut} reads: " . $stats{"qual fail reads"} . "\n";
-warn "Unmapped reads: " . $stats{"unmapped reads"} . "\n";
+print $out $p{reportBasesMessage};
+print $out $targets_message;
+print $out "\n\n";
 
-warn "Sampled reads: " . $stats{"sampled reads"} . "\n";
-warn "Reads on target: " . $stats{"reads on target"} . "\n\n";
+print $out "Total reads: " . $stats{"total reads"} . "\n";
+print $out "Mapped reads: " . $stats{"mapped reads"} . "\n";
+print $out "Non primary reads: " . $stats{"non primary reads"} . "\n";
+print $out "MAPQ < $p{qualCut} reads: " . $stats{"qual fail reads"} . "\n";
+print $out "Unmapped reads: " . $stats{"unmapped reads"} . "\n";
 
-warn "Reads missing MD tags!: " . $stats{"readsMissingMDtags"} . "\n\n";
+print $out "Sampled reads: " . $stats{"sampled reads"} . "\n";
+print $out "Reads on target: " . $stats{"reads on target"} . "\n\n";
 
-warn "Aligned bases: " . $stats{"alignedCount"} . "\n";
-warn "Soft clipped bases: " . $stats{softClipCount} . "\n";
-warn "Hard clipped bases: " . $stats{hardClipCount} . "\n";
-warn "Mismatched bases: " . $stats{mismatchCount} . "\n";
-warn "Deleted base count: " . $stats{deletionCount} . "\n";
-warn "Inserted base count: " . $stats{insertCount} . "\n";
-warn "Average read length: " . $stats{averageReadLength}{overall} . "\n\n";
+print $out "Reads missing MD tags!: " . $stats{"readsMissingMDtags"} . "\n\n";
 
-warn "Mean insert: " . $stats{meanInsert} . "\n";
-warn "Stdev insert: " . $stats{stdevInsert} . "\n";
-warn "Pairs with insert longer than $p{normalInsertMax}: "
+print $out "Aligned bases: " . $stats{"alignedCount"} . "\n";
+print $out "Soft clipped bases: " . $stats{softClipCount} . "\n";
+print $out "Hard clipped bases: " . $stats{hardClipCount} . "\n";
+print $out "Mismatched bases: " . $stats{mismatchCount} . "\n";
+print $out "Deleted base count: " . $stats{deletionCount} . "\n";
+print $out "Inserted base count: " . $stats{insertCount} . "\n";
+print $out "Average read length: " . $stats{averageReadLength}{overall} . "\n\n";
+
+print $out "Mean insert: " . $stats{meanInsert} . "\n";
+print $out "Stdev insert: " . $stats{stdevInsert} . "\n";
+print $out "Pairs with insert longer than $p{normalInsertMax}: "
   . $stats{pairsMappedAbnormallyFar} . "\n";
-warn "Pairs mapped to different chromosomes: "
+print $out "Pairs mapped to different chromosomes: "
   . $stats{pairsMappedToDifferentChr} . "\n\n";
 
-warn "Reads per start point: " . $stats{startPoint}{RPSP} . "\n\n";
+print $out "Reads per start point: " . $stats{startPoint}{RPSP} . "\n\n";
+
+if ($p{outputText}) {
+    close $out || die "Cannot close text output ".$p{outputText}.": $!";
+}
 
 ### this is adjusted after warnings, to only show the pre-correction on target numbers
 $stats{"reads on target"} *= $p{sampleRate};
@@ -419,6 +433,7 @@ sub validate_opts {
     #default sampleRate is 1001 to catch both R1s and R2s more evenly
     $param{sampleRate}      = $opt{'s'} || 1001;
     $param{normalInsertMax} = $opt{'i'} || 1500;
+    $param{outputText}      = $opt{'o'} || 0; # will default to STDERR
     $param{bedFile}         = $opt{'r'}
       || "/oicr/data/genomes/homo_sapiens/UCSC/Genomic/UCSC_hg19_random/hg19_random.genome.sizes.bed";
     $param{qualCut} = $opt{'q'} || 30;
@@ -465,11 +480,11 @@ sub validate_opts {
     if ( $opt{'c'} ) {
         $param{reportBasesCovered} = 1;
         $param{sampleRate}         = 1;
-        warn "Sampling every read and calculating bases covered.\n";
+	$param{reportBasesMessage} = "Sampling every read and calculating bases covered.\n";
     }
     else {
         $param{reportBasesCovered} = 0;
-        warn "Only sampling every $param{sampleRate} reads.\n";
+	$param{reportBasesMessage} = "Only sampling every $param{sampleRate} reads.\n";
     }
 
     if ( $opt{'D'} ) {
@@ -499,6 +514,8 @@ sub usage {
 "\t-i normal insert max.  Defines upper limit to what is considered a normal insert (default $p{normalInsertMax}).\n";
     print
 "\t-m mark duplicates metric file. Text file output by Picard MarkDuplicates. Optional.";
+    print
+"\t-o path for human-readable summary text output. Optional, defaults to STDERR.\n";
     print
 "\t-q mapping quality cut.  Reads that map with a quality worse than this will not be considered \"uniquely mapped\" (default $p{qualCut}).\n";
     print

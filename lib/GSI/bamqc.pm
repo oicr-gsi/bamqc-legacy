@@ -321,7 +321,6 @@ sub read_bed {
     close $BEDFILE;
 
     $bed{numberOfTargets} = $targetCount;
-    warn "Loaded " . $bed{numberOfTargets} . " targets.\n\n";
 
     return \%bed;
 }
