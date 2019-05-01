@@ -13,11 +13,11 @@ BEGIN {
     #@EXPORT	=	qw();
     @EXPORT_OK = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
       onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-      load_json toPhred generate_jsonHash jsonHash_keys dupMetrics_keys
+      load_json toPhred generate_jsonHash jsonHash_keys
       generate_mismatch_rate generate_indel_rate generate_softclip_rate
       generate_hardclip_rate generate_error_rate get_barcode get_group
-      get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
-      get_est_yield get_est_coverage);
+      get_hist_cvg get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
+      get_est_yield get_est_coverage read_markdup_metrics);
 
     #%EXPORT_TAGS = ();
 }
@@ -455,38 +455,6 @@ sub cigar_stats {
     }
     return ( $readLength, $mappedBases );
 
-}
-
-
-=for html <hr>
-
-=head2 dupMetrics_keys()
-
-Return the list of keys for the duplicate metrics file. Keys are also included in the JSON hash output.
-
-B<Arguments>
-
-None
-
-B<Returns>
-
-Array of key strings
-
-=cut
-
-sub dupMetrics_keys {
-    # Could instead export an array variable; but this is considered bad practice
-    # Eg. See Perl Exporter documentation
-    my @keys = qw(UNPAIRED_READS_EXAMINED
-		  READ_PAIRS_EXAMINED
-		  UNMAPPED_READS
-		  UNPAIRED_READ_DUPLICATES
-		  READ_PAIR_DUPLICATES
-		  READ_PAIR_OPTICAL_DUPLICATES
-		  PERCENT_DUPLICATION
-		  ESTIMATED_LIBRARY_SIZE
-		);
-    return @keys;
 }
 
 
@@ -959,8 +927,8 @@ sub jsonHash_keys {
 		"stdevInsert",
 		"pairsMappedAbnormallyFar",
 		"pairsMappedToDifferentChr",
+		"markDuplicates"
 	       );
-    push (@keys, dupMetrics_keys());
     return @keys;
 }
 
@@ -1481,6 +1449,64 @@ sub get_group {
 
 =for html <hr>
 
+=head2 get_hist_cvg($file, #class, $max)
+
+Generate a cumulative histogram of coverage.
+
+Key = coverage level, value = bases at this level of coverage or greater
+
+B<Arguments>
+
+=over
+
+=item $file histogram file input path
+
+=item $class string at start of each input line
+
+=item $max maximum coverage level
+
+=back
+
+B<Returns>
+
+Hash containing the coverage histogram
+
+=cut
+
+
+sub get_hist_cvg {
+    my ( $file, $class, $max ) = @_;
+    ### extract the all lines, and generate a cumulative histogram, 0..2000
+    my @lines = `cat $file | grep "^$class"`;
+    chomp @lines;
+
+    my $cum = 0;
+    my %cvg;
+    my $prev = 0;
+    map {
+        my @f             = split /\t/;
+        my $lvl           = $f[1];
+        my $percent_bases = ( 1 - $cum ) * 100;
+        $cum += $f[4];
+        $cvg{$lvl} = $percent_bases
+          ; ## key = coverage level, value is bases at this level of coverage or greater
+
+        ### fill in
+        for my $l ( ( $prev + 1 ) .. $lvl ) { $cvg{$l} = $percent_bases; }
+        $prev = $lvl;
+    } @lines;
+
+    my %cvg2 = map {
+        my $depth = $cvg{$_} || 0;
+        ( $_, $depth );
+    } 0 .. $max;
+
+    return %cvg2;
+}
+
+
+=for html <hr>
+
 =head2 get_raw_reads( $jsonHash)
 
 Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
@@ -1731,6 +1757,114 @@ sub findEnd {
         }
     }
     return $end;
+}
+
+
+=for html <hr>
+
+=head2 read_markdup_metrics($path)
+
+Read Picard MarkDuplicates text output. Metric keys are:
+
+=over
+
+=item LIBRARY
+
+String. The library on which the duplicate marking was performed.
+
+=item UNPAIRED_READS_EXAMINED
+
+Integer. The number of mapped reads examined which did not have a mapped mate pair, either because the read is unpaired, or the read is paired to an unmapped mate.
+
+=item READ_PAIRS_EXAMINED
+
+Integer. The number of mapped read pairs examined. (Primary, non-supplemental)
+
+=item SECONDARY_OR_SUPPLEMENTARY_RDS
+
+Integer. The number of reads that were either secondary or supplementary
+
+=item UNMAPPED_READS
+
+Integer. The total number of unmapped reads examined. (Primary, non-supplemental)
+
+=item UNPAIRED_READ_DUPLICATES
+
+Integer. The number of fragments that were marked as duplicates.
+
+=item READ_PAIR_DUPLICATES
+
+Integer. The number of read pairs that were marked as duplicates.
+
+=item READ_PAIR_OPTICAL_DUPLICATES
+
+Integer. The number of read pairs duplicates that were caused by optical duplication. Value is always < READ_PAIR_DUPLICATES, which counts all duplicates regardless of source.
+
+=item PERCENT_DUPLICATION
+
+Float. The fraction of mapped sequence that is marked as duplicate.
+
+=item ESTIMATED_LIBRARY_SIZE
+
+Integer. The estimated number of unique molecules in the library based on PE duplication.
+
+=item HISTOGRAM
+
+Hash. Histogram, content undocumented.
+
+B<Arguments>
+
+=over
+
+=item $path to text output file
+
+=back
+
+B<Returns>
+
+Hash containing mark duplicates metrics.
+
+=cut
+
+sub read_markdup_metrics {
+    # parse the duplicate metrics file
+    my $path = shift;
+
+    open my $in, '<', $path || die "Cannot open duplicate metrics path '$path'";
+    my $section = 0;
+    my (@keys, @values);
+    my %hist = ();
+    while (<$in>) {
+	chomp;
+	if (/## METRICS CLASS\s+net\.sf\.picard\.sam\.DuplicationMetrics/) {
+	    $section++;
+	} elsif ($section == 1) {
+	    @keys = split;
+	    $section++;
+	} elsif ($section == 2) {
+	    @values = split;
+	    $section++;
+	} elsif ($section == 3 && /^## HISTOGRAM/) {
+	    $section++;
+	} elsif ($section == 4 && /^BIN\s+VALUE$/) {
+	    $section++;
+	} elsif ($section == 5 && /^[0-9]/) {
+	    my @words = split;
+	    # multiply by 1 to ensure numeric data type for JSON
+	    my $bin = $words[0] =~ /\.0$/ ? int($words[0]) : $words[0] * 1;
+	    $hist{$words[0]} = $words[1] * 1;
+	}
+    }
+    close $in || die "Cannot close duplicate metrics path '$path'";
+    if (scalar @keys != scalar @values) {
+	die "Key and value lists from $path are of unequal length";
+    }
+    my %metrics;
+    for (my $i=0;$i<@keys;$i++) {
+	$metrics{$keys[$i]} = $values[$i];
+    }
+    $metrics{HISTOGRAM} = \%hist;
+    return %metrics;
 }
 
 
