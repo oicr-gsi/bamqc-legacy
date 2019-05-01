@@ -75,12 +75,17 @@ if ( $p{bed} =~ /ERROR/ ) {
     print usage( $p{bed} );
 }
 
+### read histogram and markDuplicates input (if any) into parameter hash
 if ( $p{histFile} ) {
     %{ $p{jsonHash}{"non collapsed bases covered"} } =
       GSI::bamqc::get_hist_cvg( $p{histFile}, "noncollapsed", 2000 )
       ;    ### add to the jsonhash
     %{ $p{jsonHash}{"collapsed bases covered"} } =
       GSI::bamqc::get_hist_cvg( $p{histFile}, "collapsed", 2000 );
+}
+
+if ( $p{markDupMetrics} ) {
+    $p{markDuplicatesHash} = GSI::bamqc::read_markdup_metrics($p{markDupMetrics});
 }
 
 $p{sortedChars} = [
@@ -93,10 +98,7 @@ q(! " # $ % & ' \( \) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F 
 ### initalize entries to 0
 ### form the json hash at the end
 ### keep all information in stats hash
-my %stats = map { ( $_, 0 ) } ( GSI::bamqc::jsonHash_keys() );
-# add mark duplicates metrics (if any) to the stats hash
-my %dup_metrics = $p{markDupMetrics} ? GSI::bamqc::read_markdup_metrics($p{markDupMetrics}) : ();
-$stats{markDuplicates} = \%dup_metrics;
+my %stats = map { ( $_, 0 ) } ( GSI::bamqc::bam_stats_keys() );
 
 $stats{bed} = $p{bed};
 ### this will track the reads per startpoint

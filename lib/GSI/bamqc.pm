@@ -871,9 +871,11 @@ sub insertMapping {
 
 =for html <hr>
 
-=head2 jsonHash_keys()
+=head2 bam_stats_keys()
 
-Return the list of keys for the JSON hash output. See generate_jsonHash for key descriptions.
+Returns a list of keys for stats obtained directly from the BAM file.
+
+See generate_jsonHash for key descriptions.
 
 B<Arguments>
 
@@ -885,8 +887,7 @@ Array of key strings
 
 =cut
 
-
-sub jsonHash_keys {
+sub bam_stats_keys {
     # Could instead export an array variable; but this is considered bad practice
     # Eg. See Perl Exporter documentation
     my @keys = (
@@ -918,6 +919,7 @@ sub jsonHash_keys {
 		"collapsed bases covered",
 		"insert histogram",
 		"readsMissingMDtags",
+		"alignedCount",
 		"hardClipCount",
 		"softClipCount",
 		"deletionCount",
@@ -926,8 +928,7 @@ sub jsonHash_keys {
 		"meanInsert",
 		"stdevInsert",
 		"pairsMappedAbnormallyFar",
-		"pairsMappedToDifferentChr",
-		"markDuplicates"
+		"pairsMappedToDifferentChr"
 	       );
     return @keys;
 }
@@ -1009,7 +1010,7 @@ values for the jsonHash.
 
 =item "aligned bases"
 
-The (estimated) number of bases that are aligned. alignedCount + insertCount
+Integer. The (estimated) number of bases that are aligned. alignedCount + insertCount
 from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
 multiplied by the sampling rate (bamqc.pl).
 
@@ -1031,7 +1032,7 @@ multiplied by the sampling rate (bamqc.pl).
 
 =item "hard clip bases"
 
-The (estimated) number of bases that are hard-clipped. hardClipCount
+Integer. The (estimated) number of bases that are hard-clipped. hardClipCount
 from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
 multiplied by the sampling rate (bamqc.pl).
 
@@ -1059,7 +1060,11 @@ Integer. A read is considered mapped if it does not have flags: non-primary
 (256) or unmapped (4), or fell below the quality cutoff.
 See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
-=item "mate unmaped reads" [sic]
+=item "mark duplicates"
+
+Hash. Metrics and histogram from Picard MarkDuplicates.
+
+=item "mate unmapped reads"
 
 Integer. A mate is considered unmapped if it has the flags: paired (1) and mate unmapped (8).
 See L</"assess_flag($flag,$stats,$qual,$qcut)">
@@ -1179,9 +1184,14 @@ B<Arguments>
 
 =over
 
-=item $stats = reference to the stats hash, where data is stored;
+=item $stats
 
-=item $p = reference to the parameters hash;
+Hashref. Contains statistics obtained directly from processing the BAM file.
+
+=item $p
+
+Hashref. Contains parameters. Includes configuration values; and BAM statistics read from
+auxiliary files, such as the coverage and mark duplicates metrics.
 
 =back
 
@@ -1195,7 +1205,7 @@ The jsonHash, ready to print.
 sub generate_jsonHash {
     my ( $stats, $p ) = @_;
 
-    my %jsonHash = map { ( $_, $$stats{$_} ) } ( jsonHash_keys() );
+    my %jsonHash = map { ( $_, $$stats{$_} ) } ( bam_stats_keys() );
 
     $jsonHash{"total reads"} = $$stats{"total reads"} * 1;
 
@@ -1207,6 +1217,8 @@ sub generate_jsonHash {
     ### capture any jsonHash elements storeed in the parameters
 
     map { $jsonHash{$_} = $$p{jsonHash}{$_}; } keys %{ $$p{jsonHash} };
+
+    $jsonHash{"mark duplicates"} = $$p{markDuplicatesHash} || {};
 
     if ( $$p{reportBasesCovered} ) {
         $jsonHash{"non collapsed bases covered"} =
@@ -1822,7 +1834,7 @@ B<Arguments>
 
 B<Returns>
 
-Hash containing mark duplicates metrics.
+Hashref containing mark duplicates metrics.
 
 =cut
 
@@ -1864,7 +1876,7 @@ sub read_markdup_metrics {
 	$metrics{$keys[$i]} = $values[$i];
     }
     $metrics{HISTOGRAM} = \%hist;
-    return %metrics;
+    return \%metrics;
 }
 
 
