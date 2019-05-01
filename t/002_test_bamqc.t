@@ -44,7 +44,7 @@ sub run_bamqc {
         BAIL_OUT("Fix the above problems before proceeding with further tests.");
     } else {
         unlink $actual_txt;
-        unlink $actual_json;
+        #unlink $actual_json;
     }
 
     return $TESTS_FAIL;

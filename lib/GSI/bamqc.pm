@@ -988,7 +988,6 @@ sub load_json {
     my @files = @_;
     my %json_hash;
     for my $file (@files) {
-        print STDERR "reading from $file\n";
         open( my $FILE, "<", $file ) or die "Couldn't open $file.\n";
         if ( my $line = <$FILE> ) {
             $json_hash{ basename($file) }           = decode_json($line);

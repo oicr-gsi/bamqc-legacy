@@ -132,7 +132,7 @@ if ($p{dupMetrics}) {
     %dup_metrics = read_dup_metrics($p{dupMetrics});
 }
 foreach my $key ( GSI::bamqc::dupMetrics_keys() ) {
-    $stats{$key} = $dup_metrics{$key} || "0";
+    $stats{$key} = $dup_metrics{$key} || 0;
 }
 #print STDERR Dumper(\%stats);
 

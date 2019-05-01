@@ -234,11 +234,10 @@ B<Arguments>
 sub plot_data {
     my ( $jsonHash, $scriptPath ) = @_;
     for my $report ( keys %$jsonHash ) {
-        warn "graphing $report\n";
         my $dest_dir = $jsonHash->{$report}->{dirname} . "/" . $report;
         system("$scriptPath/jsonToGraphs.pl $dest_dir");
         if ( $? != 0 ) {
-            warn "graphing failed for $dest_dir: $?\n";
+            warn "plotting failed for $dest_dir: $?\n";
         }
     }
 }
@@ -287,6 +286,7 @@ sub data_table {
 
     #header
     my @headings = @{ $p->{table_headers}{data} }{@cols};
+    for (@headings) { $_ = '' if !defined($_); }
     my $header   = SeqWare::Html::tableHeader(@headings);
 
     #rows
@@ -491,6 +491,7 @@ sub graph_table {
 
     my @cols     = @{ $p->{table_columns}{graph} };
     my @headings = @{ $p->{table_headers}{graph} }{@cols};
+    for (@headings) { $_ = '' if !defined($_); }
     my $header   = SeqWare::Html::tableHeader(@headings);
 
     my @rows;
