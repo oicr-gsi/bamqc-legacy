@@ -57,7 +57,7 @@ my $metadata_str=read_file($metadata_file);
 my $dup_metrics_file='t/test/marked_dup_metrics.txt';
 chomp $metadata_str;
 
-run_bamqc("-s 2000 -i 1500 -q 30 -j $metadata_file -m $dup_metrics_file ","t/test/bamqc_markdup");
+run_bamqc("-s 2000 -i 1500 -q 30 -j $metadata_file -M $dup_metrics_file ","t/test/bamqc_markdup");
 
 run_bamqc("-s 2000 -i 1500 -q 30 -j $metadata_file ","t/test/bamqc_vanilla");
 

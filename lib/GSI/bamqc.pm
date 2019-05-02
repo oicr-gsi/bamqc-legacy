@@ -1812,7 +1812,7 @@ Integer. The number of read pairs duplicates that were caused by optical duplica
 
 =item PERCENT_DUPLICATION
 
-Float. The fraction of mapped sequence that is marked as duplicate.
+Float. The fraction of mapped sequence that is marked as duplicate. Note that it is a <b>fraction</b>, not a percentage. The field name is a bug in Picard, which will not be fixed; see L<commentary on Github|https://github.com/broadinstitute/picard/issues/157>.
 
 =item ESTIMATED_LIBRARY_SIZE
 
@@ -1820,7 +1820,9 @@ Integer. The estimated number of unique molecules in the library based on PE dup
 
 =item HISTOGRAM
 
-Hash. Histogram.
+Hash. Histogram indicating return on investment, for sequencing to higher coverage than the observed coverage. The first column is the coverage multiple, and the second column is the multiple of additional actual coverage for the given coverage multiple. See the L<Picard FAQ|http://broadinstitute.github.io/picard/faq.html>.
+
+=back
 
 B<Arguments>
 

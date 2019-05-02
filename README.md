@@ -53,3 +53,12 @@ The -H option in bamqc.pl expects a 'bedtools histogram file' for coverage. Here
     samtools rmdup MY_BAM.bam - | bedtools coverage -hist -abam stdin -b targets.bed | grep all | sed 's/all/collapsed/g' >> MY_BAM.hist
     bedtools coverage -hist -abam MY_BAM.bam -b targets.bed | grep all | sed 's/all/noncollapsed/g' >> MY_BAM.hist
 
+
+## Picard MarkDuplicates file
+
+The -M option in bamqc.pl expects a text file, output from the -M option in Picard MarkDuplicates:
+
+    java -jar picard.jar MarkDuplicates \
+        I=input.bam \
+        O=marked_duplicates.bam \
+        M=marked_dup_metrics.txt

@@ -54,7 +54,7 @@ use GSI::bamqc;
 use JSON::PP;    # imports encode_json, decode_json, to_json and from_json
 
 ### ASSESS options and generate the parameter hash
-my $opt_string = "s:i:l:m:r:b:j:o:q:ch:H:D";
+my $opt_string = "s:i:l:r:b:j:o:q:ch:H:DM:";
 getopts( $opt_string, \%opt ) or usage("Incorrect arguments.");
 
 ### DEBUG, comment out when not in use
@@ -393,17 +393,6 @@ sub validate_opts {
         }
     }
 
-    #%{$param{jsonHash}}=%{ decode_json($opt{'j'}) } if($opt{'j'});
-
-    if ( $opt{'m'} ) {
-	my $path = $opt{'m'};
-	if ( -e $path) {
-	    $param{markDupMetrics} = $path;
-	} else {
-	    die "Duplicate metrics file $path does not exist.";
-	}
-    }
-
     if ( $opt{'b'} ) {
         $param{bamPath}                   = $opt{'b'};
         $param{jsonHash}{"bam path"}      = $opt{'b'};
@@ -433,6 +422,15 @@ sub validate_opts {
 
     }
 
+    if ( $opt{'M'} ) {
+	my $path = $opt{'M'};
+	if ( -e $path) {
+	    $param{markDupMetrics} = $path;
+	} else {
+	    die "Duplicate metrics file $path does not exist.";
+	}
+    }
+
     return %param;
 }
 
@@ -441,17 +439,15 @@ sub usage {
     print "Bam file must be sorted by coordinates.\n";
     print "Options are as follows:\n";
     print
-"\t-s sample rate.  Defines how often to sample the reads (default $p{sampleRate}).\n";
+"\t-s sample rate. Defines how often to sample the reads (default $p{sampleRate}).\n";
     print
-"\t-i normal insert max.  Defines upper limit to what is considered a normal insert (default $p{normalInsertMax}).\n";
-    print
-"\t-m mark duplicates metric file. Text file output by Picard MarkDuplicates. Optional.";
+"\t-i normal insert max. Defines upper limit to what is considered a normal insert (default $p{normalInsertMax}).\n";
     print
 "\t-o path for human-readable summary text output. Optional, defaults to STDERR.\n";
     print
-"\t-q mapping quality cut.  Reads that map with a quality worse than this will not be considered \"uniquely mapped\" (default $p{qualCut}).\n";
+"\t-q mapping quality cut. Reads that map with a quality worse than this will not be considered \"uniquely mapped\" (default $p{qualCut}).\n";
     print
-"\t-r target.bed.  Bed file containing targets to calculate coverage against (default $p{bedFile}).\n";
+"\t-r target.bed. Bed file containing targets to calculate coverage against (default $p{bedFile}).\n";
     print
 "\t\tNOTE: target.bed file MUST be sorted in the same order as the bam file.\n";
     print
@@ -460,6 +456,8 @@ sub usage {
     print
 "\t-j file containing additional JSON formatted data string. e.g. '{\"sample\":\"TLCR2C10n\",\"library\":\"TLCR_2C10_nn_n_PE_501_nn\",\"barcode\":\"TAGCTT\",\"instrument\":\"h802\",\"run name\":\"110616_SN802_0060_AC00FWACXX\",\"lane\":\"4\"}'\n";
     print "\t-H bedtools histogram file, for coverage analysis\n";
+    print
+"\t-M mark duplicates metric file. Text file output by Picard MarkDuplicates. Optional.\n";
     print "\t-D debug mode\n";
     print "\t-h displays this usage message.\n";
 
