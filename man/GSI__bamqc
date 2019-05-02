@@ -1,314 +1,1095 @@
-NAME
-    bamqc - Generate quality control statistics from BAM files
-
-SYNOPSIS
-      use GSI::bamqc;
-
-DESCRIPTION
-USAGE
-BUGS
-SUPPORT
-AUTHOR
-    Genome Sequence Informatics Ontario Institute for Cancer Research
-    https://github.com/oicr-gsi
-
-COPYRIGHT
-    Copyright (C) 2017 The Ontario Institute for Cancer Research
-
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by the
-    Free Software Foundation; either version 3 of the License, or (at your
-    option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-    Public License for more details.
-
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-
-SEE ALSO
-    perl(1).
-
-  assess_flag($flag,$stats,$qual,$qcut)
-    Assesses the sam flag and stores information in the reference hash
-
-    Returns : 1 if the read is mapped, 0 if not
-
-    Argument : $flag = the sam record flag; $stats = a reference to a hash,
-    which will be modified; $qual = the alignment quality; $param = the
-    parameter hash;
-
-    Comment : conditions assessed are as follows: 256="non primary reads";
-    4="unmapped read"; $qual < $qcut="qual fail reads"; if none of the
-    above="mapped reads"; 1="paired reads"; 8="mate unmaped reads" [sic];
-    2="properly paired reads"
-
-  assess_start_point($chrom,$s1,$s2,$sphash)
-    Keeps a running calculation of ReadsPerStartPoint, updating this value
-    with each read. It is dependent on the stream alignment data being
-    properly sorted
-
-    Returns : A revised StartPoint hash, with updated stats
-
-    Argument : $chrom = the chromosome of the current record; $s1 = the
-    position of the current record = the leftmost start point; $s2 = the
-    position of the paired record = the rightmost start point; $sphash = the
-    current StartPoint hash, holding the current position; and the running
-    ReadsPerStartPoint value;
-
-  read_bed($file)
-    Reads in a bed file, storing in the intervals in an array of hashes
-    indicating, Start/Stop and size
-
-    Returns : Hash structure containing the bed intervals
-
-    Argument : $file = the name of the bed file, containing the intervals
-
-  cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)
-    Processes the cigarString, by breaking into pieces and assessing how the
-    read is mapped to the reference
-
-    Returns : A list with two values, $readLength and $mappedBases
-
-    Argument : $chrom = the chromosome to which the current read maps;
-    $start1 = the leftmost startpoint; $start2 = the rightmost startpoint
-    for the paired end; $R = the read (R1,R2,R?); $strand = the strand to
-    which the read maps, from the sam flag; $cigar = the cigar string;
-    $stats = a reference to the stats hash, which will be modified; $p = a
-    reference to the parameter hash;
-
-  md_stats($R,$mdstring,$strand,$stats)
-    Processes the cigarString, by breaking into pieces and assessing how the
-    read is mapped to the reference
-
-    Returns : the number of mismatches defined by the MD string
-
-    Argument : $R = R1,R2,R?; $mdstring = the mismatch string, extracted
-    from the MD:Z tag in the sam record; $strand = to which strand does the
-    read map; $stats = reference to the stats hash, values will be modified;
-
-  onTarget($chrom,$start,$mapped,$stats)
-    Determines if the read overlaps to any degree intervals contained within
-    the bedfile record. The bedfile record is modified to indicated mapping
-    to this interval
-
-    Returns : 1 if mapped to Target, 0 if not
-
-    Argument : $chrom = the chromosome to which the read maps; $start = the
-    leftmost start position; $mapped = the number of bases mapped; $bed = a
-    reference to the bed hash; $stats = a reference to the stats hash
-    containing the bed intervals, which will be modified;
-
-  addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)
-    Adds fragments to the runningBaseCoverage collection. Each fragment is
-    added to all positions to which the read maps. This collection will be
-    continuously process and cleared of all positions that precede the
-    current read start
-
-    Returns : the number of positions to which the current fragment is
-    stored/mapped
-
-    Argument : $chrom = the chromosome to which the current read maps;
-    $start1 = the left-most start of the paired end reads; $start2 = the
-    right-most start of the paired end reads; $cigar = the cigar string;
-    $strand = the strand to which the read maps; $stats = a reference to the
-    stats hash;
-
-  runningBaseCoverage($stats,$chrom,$startpos)
-    Calculates base coverage as a running total. This requires that the
-    streaming records are from a sorted bam file. This will produce a hash
-    with chromosomal keys, each value being a hash of fragment positions and
-    counts, by parsing the cigar string for the current record. When a new
-    mapping position is found, stats are generated on all stored positions,
-    and then the hash is cleared
-
-    Returns : The number of cleared positions from the runningBaseCoverage
-    hash
-
-    Argument : $stats = a reference to the stats hash, holding the
-    runningBaseCoverage hash. Other keys in the stats hash will be modified;
-    $chrom = the current chromosome, all recorded positions not on this
-    chromosome will be processed and cleared. If no value, then the whole
-    hash is cleared; $pos = the current position, all recorded positions on
-    the current chromosome, before this position, will be cleared;
-
-  HistStats(%val)
-    Calculate the mean and standard deviation of insert sizes in a hash
-
-    Returns : mean and standard deviation of the insert sizes
-
-    Argument : %val = a hash, with keys = insert size, values = count for
-    each insert size
-
-  insertMapping($tlen,$rnext,$hash,$p)
-    Identifies the paired-end insert size as being within the normal range,
-    abnormally far, or on different chromosomes
-
-    Returns : A description of the insert mapping (normlInsertSize/
-    pairsMappedAbnormallyFar/ pairsMappedToDifferentChr). Modifies the
-    reference hash
-
-    Argument : $tlen = template length; $rnext = the chromosome of the other
-    in the pair, = indicates the same; $hash = reference to a hash
-    collecting statistics; $p = parameter hash;
-
-  load_json(@files)
-    Open, decode, and store each JSON file in a hash with filename keys
-
-    Returns : a hash with filename keys > decoded JSON hash
-
-    Argument : @files = a list of json file paths
-
-  toPhred($char)
-    Convert a character to a phred score (ascii value - 33)
-
-    Returns : Phred score
-
-    Argument : $char = the single character to convert
-
-  generate_jsonHash($stats,$p)
-    Transforms information in the stats hash to the appropriate keys and
-    values for the jsonHash
-
-    Returns : The jsonHash, ready to print
-
-    Argument : $stats = reference to the stats hash, where data is stored;
-    $p = reference to the parameters hash;
-
-  generate_error_rate( $hash, $prefix )
-    Compute the error rate with (mismatch+insertion+deletion)/aligned
-
-    Returns : A formatted percentage
-
-    Argument : $hash = The hash containing the JSON file contents to
-    analyse; $prefix = A prefix to use when accessing the keys of hash;
-
-  generate_mismatch_rate( $hash, $prefix )
-    Compute the mismatch rate with mismatch/aligned
-
-    Returns : A formatted percentage
-
-    Argument : $hash = The hash containing the JSON file contents to
-    analyse; $prefix = A prefix to use when accessing the keys of hash;
-
-  generate_indel_rate( $hash, $prefix )
-    Compute the indel rate with (insertion+deletion)/aligned
-
-    Returns : A formatted percentage
-
-    Argument : $hash = The hash containing the JSON file contents to
-    analyse; $prefix = A prefix to use when accessing the keys of hash;
-
-  generate_softclip_rate( $hash, $prefix )
-    Compute the softclip rate with soft clip/(soft clip + aligned)
-
-    Returns : A formatted percentage
-
-    Argument : $hash = The hash containing the JSON file contents to
-    analyse; $prefix = A prefix to use when accessing the keys of hash;
-
-  generate_hardclip_rate( $hash, $prefix )
-    Compute the hardclip rate with hard clip/(hard clip + soft clip +
-    aligned)
-
-    Returns : A formatted percentage
-
-    Argument : $hash = The hash containing the JSON file contents to
-    analyse; $prefix = A prefix to use when accessing the keys of hash;
-
-  get_barcode( $jsonHash)
-    Get the sequencing index / barcode
-
-    Returns : the barcode if it exists; otherwise 'NoIndex'
-
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
-
-  get_group( $jsonHash)
-    Get the group id and group id description
-
-    Returns : the group id and group id description separated by a space, if
-    they exist. If they don't exist, then 'na'
-
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
-
-  get_raw_reads( $jsonHash)
-    Get the total raw reads, counted by summing mapped, unmapped and qual
-    fail reads
-
-    Returns : the total number of reads (int)
-
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
-
-  get_raw_yield( $jsonHash)
-    Get the total raw yield, multipying get_raw_reads by the average read
-    length
-
-    Returns : the total yield (int)
-
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
-
-  get_map_percent( $jsonHash)
-    Get the total map percentage, calculated by dividing mapped reads by
-    total number of reads and multiplying by 100. If total reads is 0, treat
-    as 1.
-
-    Returns : the map percentage as an integer
-
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
-
-  get_ontarget_percent( $jsonHash)
-    Get the total on target percentage by dividing reads on target by the
-    number of mapped reads, and multiplying by 100. If mapped reads is 0,
-    treat as 1.
-
-    Returns : the on target percentage as an integer
-
-    Argument : $jsonHash = The hash containing the JSON file contents to
-    analyse.
-
-  get_est_yield( $jsonHash)
-    Get the estimated total yield by multiplying total aligned based by the
-    on target percentage, and dividing that by reads per start point. If
-    reads per start point is is 0, treat as 1.
-
-    Returns : the estimated yield as an integer
-
-    Argument : $collapse = whether to use reads per start point to collapse
-    down the coverage; $jsonHash = The hash containing the JSON file
-    contents to analyse.
-
-  get_est_coverage( $jsonHash)
-    Get the estimated total coverage by dividing estimated yield by the
-    target size. If the target is is 0, treat as 1.
-
-    Returns : the estimated coverage as an integer
-
-    Argument : $collapse = whether to use reads per start point to collapse
-    down the coverage; $jsonHash = The hash containing the JSON file
-    contents to analyse.
-
-  findStart($cigarOp, $start)
-    Find the start index of the read using the cigar string
-
-    Returns : the new start position, adjusted to take soft clipping into
-    account
-
-    Argument : $cigarOp = the cigar string
-
-  findEnd($cigarOp, $end)
-    Find the start index of the read using the cigar string
-
-    Returns : the new start position, adjusted to take soft clipping into
-    account
-
-    Argument : $cigarOp = the cigar string; $end = the assumed end of the
-    string;
-
+.\" Automatically generated by Pod::Man 2.28 (Pod::Simple 3.29)
+.\"
+.\" Standard preamble:
+.\" ========================================================================
+.de Sp \" Vertical space (when we can't use .PP)
+.if t .sp .5v
+.if n .sp
+..
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\" Set up some character translations and predefined strings.  \*(-- will
+.\" give an unbreakable dash, \*(PI will give pi, \*(L" will give a left
+.\" double quote, and \*(R" will give a right double quote.  \*(C+ will
+.\" give a nicer C++.  Capital omega is used to do unbreakable dashes and
+.\" therefore won't be available.  \*(C` and \*(C' expand to `' in nroff,
+.\" nothing in troff, for use with C<>.
+.tr \(*W-
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.ie n \{\
+.    ds -- \(*W-
+.    ds PI pi
+.    if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.    if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\"  diablo 12 pitch
+.    ds L" ""
+.    ds R" ""
+.    ds C` ""
+.    ds C' ""
+'br\}
+.el\{\
+.    ds -- \|\(em\|
+.    ds PI \(*p
+.    ds L" ``
+.    ds R" ''
+.    ds C`
+.    ds C'
+'br\}
+.\"
+.\" Escape single quotes in literal strings from groff's Unicode transform.
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\"
+.\" If the F register is turned on, we'll generate index entries on stderr for
+.\" titles (.TH), headers (.SH), subsections (.SS), items (.Ip), and index
+.\" entries marked with X<> in POD.  Of course, you'll have to process the
+.\" output yourself in some meaningful fashion.
+.\"
+.\" Avoid warning from groff about undefined register 'F'.
+.de IX
+..
+.nr rF 0
+.if \n(.g .if rF .nr rF 1
+.if (\n(rF:(\n(.g==0)) \{
+.    if \nF \{
+.        de IX
+.        tm Index:\\$1\t\\n%\t"\\$2"
+..
+.        if !\nF==2 \{
+.            nr % 0
+.            nr F 2
+.        \}
+.    \}
+.\}
+.rr rF
+.\"
+.\" Accent mark definitions (@(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2).
+.\" Fear.  Run.  Save yourself.  No user-serviceable parts.
+.    \" fudge factors for nroff and troff
+.if n \{\
+.    ds #H 0
+.    ds #V .8m
+.    ds #F .3m
+.    ds #[ \f1
+.    ds #] \fP
+.\}
+.if t \{\
+.    ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.    ds #V .6m
+.    ds #F 0
+.    ds #[ \&
+.    ds #] \&
+.\}
+.    \" simple accents for nroff and troff
+.if n \{\
+.    ds ' \&
+.    ds ` \&
+.    ds ^ \&
+.    ds , \&
+.    ds ~ ~
+.    ds /
+.\}
+.if t \{\
+.    ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.    ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.    ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.    ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.    ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.    ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.\}
+.    \" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.    \" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.    \" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.    ds : e
+.    ds 8 ss
+.    ds o a
+.    ds d- d\h'-1'\(ga
+.    ds D- D\h'-1'\(hy
+.    ds th \o'bp'
+.    ds Th \o'LP'
+.    ds ae ae
+.    ds Ae AE
+.\}
+.rm #[ #] #H #V #F C
+.\" ========================================================================
+.\"
+.IX Title "GSI::bamqc 3"
+.TH GSI::bamqc 3 "2019-05-02" "perl v5.22.1" "User Contributed Perl Documentation"
+.\" For nroff, turn off justification.  Always turn off hyphenation; it makes
+.\" way too many mistakes in technical documents.
+.if n .ad l
+.nh
+.SH "BamQC"
+.IX Header "BamQC"
+.SS "\s-1NAME\s0"
+.IX Subsection "NAME"
+bamqc \- Generate quality control statistics from \s-1BAM\s0 files.
+.SS "\s-1SYNOPSIS\s0"
+.IX Subsection "SYNOPSIS"
+.Vb 1
+\&  use GSI::bamqc;
+.Ve
+.SS "\s-1DESCRIPTION\s0"
+.IX Subsection "DESCRIPTION"
+This library's whole function
+is to get enough information to feed to \*(L"generate_jsonHash($stats,$p)\*(R" and
+produce a \s-1JSON\s0 file with lots and lots of information about the \s-1BAM\s0 file.
+.SS "\s-1AUTHOR\s0"
+.IX Subsection "AUTHOR"
+Genome Sequence Informatics <https://gsi.oicr.on.ca>,
+Ontario Institute for Cancer Research <https://oicr.on.ca>.
+On Github at <https://github.com/oicr\-gsi/bamqc>.
+.SS "\s-1COPYRIGHT\s0"
+.IX Subsection "COPYRIGHT"
+Copyright (C) 2019 The Ontario Institute for Cancer Research
+.PP
+This program is free software; you can redistribute it and/or modify
+it under the terms of the \s-1GNU\s0 General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+.PP
+This program is distributed in the hope that it will be useful, but
+\&\s-1WITHOUT ANY WARRANTY\s0; without even the implied warranty of
+\&\s-1MERCHANTABILITY\s0 or \s-1FITNESS FOR A PARTICULAR PURPOSE. \s0 See the \s-1GNU\s0
+General Public License for more details.
+.PP
+You should have received a copy of the \s-1GNU\s0 General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+\&\s-1MA 02110\-1301, USA.\s0
+.SH "Subroutines"
+.IX Header "Subroutines"
+.SS "assess_flag($flag,$stats,$qual,$qcut)"
+.IX Subsection "assess_flag($flag,$stats,$qual,$qcut)"
+Assesses the sam flag and stores information in the \f(CW$stats\fR reference hash
+.PP
+\&\fBArguments\fR
+.ie n .IP "$flag : the sam record flag;" 4
+.el .IP "\f(CW$flag\fR : the sam record flag;" 4
+.IX Item "$flag : the sam record flag;"
+.PD 0
+.ie n .IP "$stats : a reference to a hash, which will be modified;" 4
+.el .IP "\f(CW$stats\fR : a reference to a hash, which will be modified;" 4
+.IX Item "$stats : a reference to a hash, which will be modified;"
+.ie n .IP "$qual : the alignment quality;" 4
+.el .IP "\f(CW$qual\fR : the alignment quality;" 4
+.IX Item "$qual : the alignment quality;"
+.ie n .IP "$param : the parameter hash;" 4
+.el .IP "\f(CW$param\fR : the parameter hash;" 4
+.IX Item "$param : the parameter hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+1 if the read is mapped, 0 if not (modifies \f(CW$stats\fR with statuses).
+The following labels will be incremented in \f(CW$stats\fR if found.
+.ie n .IP """non primary reads"" = 256" 4
+.el .IP "``non primary reads'' = 256" 4
+.IX Item "non primary reads = 256"
+.PD 0
+.IP """unmapped reads = 4;" 4
+.IX Item """unmapped reads = 4;"
+.ie n .IP """qual fail reads"" = $qual < $qcut ;" 4
+.el .IP "``qual fail reads'' = \f(CW$qual\fR < \f(CW$qcut\fR ;" 4
+.IX Item "qual fail reads = $qual < $qcut ;"
+.ie n .IP """mapped reads"" = if none of the above are true" 4
+.el .IP "``mapped reads'' = if none of the above are true" 4
+.IX Item "mapped reads = if none of the above are true"
+.ie n .IP """paired reads"" = 1" 4
+.el .IP "``paired reads'' = 1" 4
+.IX Item "paired reads = 1"
+.ie n .IP """mate unmaped reads"" [sic] = 8;" 4
+.el .IP "``mate unmaped reads'' [sic] = 8;" 4
+.IX Item "mate unmaped reads [sic] = 8;"
+.ie n .IP """properly paired reads"" = 2" 4
+.el .IP "``properly paired reads'' = 2" 4
+.IX Item "properly paired reads = 2"
+.PD
+.SS "assess_start_point($chrom,$s1,$s2,$sphash)"
+.IX Subsection "assess_start_point($chrom,$s1,$s2,$sphash)"
+Keeps a running calculation of ReadsPerStartPoint, updating
+value with each read. It is dependent on the stream alignment data
+being properly sorted.
+.PP
+Reads per start point is recalculated when the leftstart changes from the previous record
+.PP
+\&\fBArguments\fR
+.ie n .IP "$chrom = the chromosome of the current record;" 4
+.el .IP "\f(CW$chrom\fR = the chromosome of the current record;" 4
+.IX Item "$chrom = the chromosome of the current record;"
+.PD 0
+.ie n .IP "$s1	 = the position of the current record = the leftmost start point;" 4
+.el .IP "\f(CW$s1\fR	 = the position of the current record = the leftmost start point;" 4
+.IX Item "$s1 = the position of the current record = the leftmost start point;"
+.ie n .IP "$s2    = the position of the paired record = the rightmost start point;" 4
+.el .IP "\f(CW$s2\fR    = the position of the paired record = the rightmost start point;" 4
+.IX Item "$s2 = the position of the paired record = the rightmost start point;"
+.ie n .IP "$sphash	 = the current StartPoint hash, holding the current position and the running ReadsPerStartPoint value;" 4
+.el .IP "\f(CW$sphash\fR	 = the current StartPoint hash, holding the current position and the running ReadsPerStartPoint value;" 4
+.IX Item "$sphash = the current StartPoint hash, holding the current position and the running ReadsPerStartPoint value;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A revised StartPoint \f(CW$sphash\fR hash, with updated stats:
+.ie n .IP """count"" : count each distinct pairedstart as a distinct start point" 4
+.el .IP "``count'' : count each distinct pairedstart as a distinct start point" 4
+.IX Item "count : count each distinct pairedstart as a distinct start point"
+.PD 0
+.ie n .IP """current"" : record the current left start point" 4
+.el .IP "``current'' : record the current left start point" 4
+.IX Item "current : record the current left start point"
+.ie n .IP """\s-1RPSP"" :\s0 reads per start point" 4
+.el .IP "``\s-1RPSP'' :\s0 reads per start point" 4
+.IX Item "RPSP : reads per start point"
+.PD
+.SS "read_bed($file)"
+.IX Subsection "read_bed($file)"
+Reads in a bed file, storing in \f(CW\*(C`intervals\*(C'\fR in an array of hashes
+indicating, Start/Stop and size
+.PP
+\&\fBArguments\fR
+.ie n .IP "$file = the name of the bed file, containing the intervals" 4
+.el .IP "\f(CW$file\fR = the name of the bed file, containing the intervals" 4
+.IX Item "$file = the name of the bed file, containing the intervals"
+.PP
+\&\fBErrors\fR
+.IP "if the bed file can't be opened" 4
+.IX Item "if the bed file can't be opened"
+.PD 0
+.IP "if the bed file contains an interval of size 0" 4
+.IX Item "if the bed file contains an interval of size 0"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+Hash structure containing the bed intervals
+.PP
+.Vb 5
+\& %bed {
+\&  @intervals { Start, Stop, Size }
+\&  targetSize
+\&  numberOfTargets
+\& }
+.Ve
+.SS "cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)"
+.IX Subsection "cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)"
+Processes the cigarString by breaking into pieces and assessing how
+the read is mapped to the reference
+.PP
+\&\fBArguments\fR
+.ie n .IP "$chrom = the chromosome to which the current read maps;" 4
+.el .IP "\f(CW$chrom\fR = the chromosome to which the current read maps;" 4
+.IX Item "$chrom = the chromosome to which the current read maps;"
+.PD 0
+.ie n .IP "$start1 = the leftmost startpoint;" 4
+.el .IP "\f(CW$start1\fR = the leftmost startpoint;" 4
+.IX Item "$start1 = the leftmost startpoint;"
+.ie n .IP "$start2 = the rightmost startpoint for the paired end;" 4
+.el .IP "\f(CW$start2\fR = the rightmost startpoint for the paired end;" 4
+.IX Item "$start2 = the rightmost startpoint for the paired end;"
+.ie n .IP "$R = the read (R1,R2,R?);" 4
+.el .IP "\f(CW$R\fR = the read (R1,R2,R?);" 4
+.IX Item "$R = the read (R1,R2,R?);"
+.ie n .IP "$strand = the strand to which the read maps, from the sam flag;" 4
+.el .IP "\f(CW$strand\fR = the strand to which the read maps, from the sam flag;" 4
+.IX Item "$strand = the strand to which the read maps, from the sam flag;"
+.ie n .IP "$cigar = the cigar string;" 4
+.el .IP "\f(CW$cigar\fR = the cigar string;" 4
+.IX Item "$cigar = the cigar string;"
+.ie n .IP "$stats = a reference to the stats hash, which will be modified;" 4
+.el .IP "\f(CW$stats\fR = a reference to the stats hash, which will be modified;" 4
+.IX Item "$stats = a reference to the stats hash, which will be modified;"
+.ie n .IP "$p = a reference to the parameter hash;" 4
+.el .IP "\f(CW$p\fR = a reference to the parameter hash;" 4
+.IX Item "$p = a reference to the parameter hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A list with two values, \f(CW$readLength\fR and \f(CW$mappedBases\fR. Increments \f(CW$stats\fR with values:
+.ie n .IP """alignedCount"", ""hardClipCount"", ""softClipCount"", ""insertCount"", ""deletionCount""" 4
+.el .IP "\f(CWalignedCount\fR, \f(CWhardClipCount\fR, \f(CWsoftClipCount\fR, \f(CWinsertCount\fR, \f(CWdeletionCount\fR" 4
+.IX Item "alignedCount, hardClipCount, softClipCount, insertCount, deletionCount"
+.PD 0
+.ie n .IP """byCycle"" > ""aligned"" > read > cycle" 4
+.el .IP "\f(CWbyCycle\fR > \f(CWaligned\fR > read > cycle" 4
+.IX Item "byCycle > aligned > read > cycle"
+.ie n .IP """byCycle"" > ""hardClip"" > read > cycle" 4
+.el .IP "\f(CWbyCycle\fR > \f(CWhardClip\fR > read > cycle" 4
+.IX Item "byCycle > hardClip > read > cycle"
+.ie n .IP """byCycle"" > ""softClip"" > read > cycle" 4
+.el .IP "\f(CWbyCycle\fR > \f(CWsoftClip\fR > read > cycle" 4
+.IX Item "byCycle > softClip > read > cycle"
+.ie n .IP """byCycle"" > ""insertion"" > read > cycle" 4
+.el .IP "\f(CWbyCycle\fR > \f(CWinsertion\fR > read > cycle" 4
+.IX Item "byCycle > insertion > read > cycle"
+.ie n .IP """byCycle"" > ""deletion"" > read > cycle" 4
+.el .IP "\f(CWbyCycle\fR > \f(CWdeletion\fR > read > cycle" 4
+.IX Item "byCycle > deletion > read > cycle"
+.PD
+.PP
+\&\fBErrors\fR
+.IP "if the cigar string contains an unknown operation" 4
+.IX Item "if the cigar string contains an unknown operation"
+.SS "md_stats($R,$mdstring,$strand,$stats)"
+.IX Subsection "md_stats($R,$mdstring,$strand,$stats)"
+Processes the \s-1MD:Z\s0 tag in the \s-1SAM.\s0
+.PP
+\&\fBArguments\fR
+.ie n .IP "$R = the read; one of R1,R2,R?;" 4
+.el .IP "\f(CW$R\fR = the read; one of R1,R2,R?;" 4
+.IX Item "$R = the read; one of R1,R2,R?;"
+.PD 0
+.ie n .IP "$mdstring = the mismatch string, extracted from the \s-1MD:Z\s0 tag in the sam record;" 4
+.el .IP "\f(CW$mdstring\fR = the mismatch string, extracted from the \s-1MD:Z\s0 tag in the sam record;" 4
+.IX Item "$mdstring = the mismatch string, extracted from the MD:Z tag in the sam record;"
+.ie n .IP "$strand = to which strand does the read map;" 4
+.el .IP "\f(CW$strand\fR = to which strand does the read map;" 4
+.IX Item "$strand = to which strand does the read map;"
+.ie n .IP "$stats = reference to the stats hash, values will be modified;" 4
+.el .IP "\f(CW$stats\fR = reference to the stats hash, values will be modified;" 4
+.IX Item "$stats = reference to the stats hash, values will be modified;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The number of mismatches defined by the \s-1MD\s0 string.
+Increments the following in the \f(CW$stats\fR hash, if encountered.
+.ie n .IP """mismatchCount""" 4
+.el .IP "\f(CWmismatchCount\fR" 4
+.IX Item "mismatchCount"
+.PD 0
+.ie n .IP """byCycle"" > ""mismatch"" > Read > cycle" 4
+.el .IP "\f(CWbyCycle\fR > \f(CWmismatch\fR > Read > cycle" 4
+.IX Item "byCycle > mismatch > Read > cycle"
+.PD
+.SS "onTarget($chrom,$start,$mapped,$stats)"
+.IX Subsection "onTarget($chrom,$start,$mapped,$stats)"
+Determines if the read overlaps to any degree intervals contained
+						within the bedfile record.  The bedfile record is modified to
+						indicated mapping to this interval. One read may map to multiple intervals.
+.PP
+\&\fBWhat is an on-target read?\fR
+.PP
+A read that overlaps the target region by any number of bases (0=false; 1=true).
+.PP
+.Vb 7
+\& \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-XXXXXXXXXXXX\-\-\-\-\-\-\-\-\-\-\-\-
+\&   0000000000
+\&           1111111111
+\&              1111111111111111
+\&                  11111111
+\&              1111111111111
+\&                               0000000000
+.Ve
+.PP
+\&\fBArguments\fR
+.ie n .IP "$chrom = the chromosome to which the read maps;" 4
+.el .IP "\f(CW$chrom\fR = the chromosome to which the read maps;" 4
+.IX Item "$chrom = the chromosome to which the read maps;"
+.PD 0
+.ie n .IP "$start = the leftmost start position;" 4
+.el .IP "\f(CW$start\fR = the leftmost start position;" 4
+.IX Item "$start = the leftmost start position;"
+.ie n .IP "$mapped = the number of bases mapped;" 4
+.el .IP "\f(CW$mapped\fR = the number of bases mapped;" 4
+.IX Item "$mapped = the number of bases mapped;"
+.ie n .IP "$bed = a reference to the bed hash;" 4
+.el .IP "\f(CW$bed\fR = a reference to the bed hash;" 4
+.IX Item "$bed = a reference to the bed hash;"
+.ie n .IP "$stats = a reference to the stats hash containing the bed intervals, which will be modified;" 4
+.el .IP "\f(CW$stats\fR = a reference to the stats hash containing the bed intervals, which will be modified;" 4
+.IX Item "$stats = a reference to the stats hash containing the bed intervals, which will be modified;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+1 if mapped to Target, 0 if not.
+Increments the following in the \f(CW$stats\fR hash, if encountered.
+.ie n .IP """bed"" > ""intervals"" > chromosome > index > ""hist"" : adds number of mapped" 4
+.el .IP "\f(CWbed\fR > \f(CWintervals\fR > chromosome > index > \f(CWhist\fR : adds number of mapped" 4
+.IX Item "bed > intervals > chromosome > index > hist : adds number of mapped"
+.SS "addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)"
+.IX Subsection "addRunningBaseCoverage($chrom,$start1,$start2,$cigar,$strand,$stats)"
+Adds fragments to the runningBaseCoverage collection.  Each fragment
+is added to all positions to which the read maps.
+This collection will be continuously process and cleared of all
+positions that precede the current read start
+.PP
+\&\fBArguments\fR
+.ie n .IP "$chrom = the chromosome to which the current read maps;" 4
+.el .IP "\f(CW$chrom\fR = the chromosome to which the current read maps;" 4
+.IX Item "$chrom = the chromosome to which the current read maps;"
+.PD 0
+.ie n .IP "$start1 = the left-most start of the paired end reads;" 4
+.el .IP "\f(CW$start1\fR = the left-most start of the paired end reads;" 4
+.IX Item "$start1 = the left-most start of the paired end reads;"
+.ie n .IP "$start2 = the right-most start of the paired end reads;" 4
+.el .IP "\f(CW$start2\fR = the right-most start of the paired end reads;" 4
+.IX Item "$start2 = the right-most start of the paired end reads;"
+.ie n .IP "$cigar = the cigar string;" 4
+.el .IP "\f(CW$cigar\fR = the cigar string;" 4
+.IX Item "$cigar = the cigar string;"
+.ie n .IP "$strand = the strand to which the read maps;" 4
+.el .IP "\f(CW$strand\fR = the strand to which the read maps;" 4
+.IX Item "$strand = the strand to which the read maps;"
+.ie n .IP "$stats = a reference to the stats hash;" 4
+.el .IP "\f(CW$stats\fR = a reference to the stats hash;" 4
+.IX Item "$stats = a reference to the stats hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The number of positions to which the current fragment is stored/mapped.
+Increments the following in the \f(CW$stats\fR hash, if encountered.
+.ie n .IP """runningBaseCoverage"" > chromosome > start + mismatch/deletion offset > ""$chrom\et$start1\et$start2""" 4
+.el .IP "\f(CWrunningBaseCoverage\fR > chromosome > start + mismatch/deletion offset > ``$chrom\et$start1\et$start2''" 4
+.IX Item "runningBaseCoverage > chromosome > start + mismatch/deletion offset > $chromt$start1t$start2"
+.SS "runningBaseCoverage($stats,$chrom,$startpos)"
+.IX Subsection "runningBaseCoverage($stats,$chrom,$startpos)"
+Calculates base coverage as a running total. This requires that the
+						streaming records are from a sorted bam file.
+						This will produce a hash with chromosomal keys, each value being a
+						hash of fragment positions and counts, by parsing the cigar string
+						for the current record.
+						When a new mapping position is found, stats are generated on all
+						stored positions, and then the hash is cleared
+.PP
+\&\fBArguments\fR
+.ie n .IP "$stats = a reference to the stats hash, holding the runningBaseCoverage hash.  Other keys in the stats hash will be modified;" 4
+.el .IP "\f(CW$stats\fR = a reference to the stats hash, holding the runningBaseCoverage hash.  Other keys in the stats hash will be modified;" 4
+.IX Item "$stats = a reference to the stats hash, holding the runningBaseCoverage hash. Other keys in the stats hash will be modified;"
+.PD 0
+.ie n .IP "$chrom = the current chromosome, all recorded positions not on this chromosome will be processed and cleared.  If no value, then the whole hash is cleared;" 4
+.el .IP "\f(CW$chrom\fR = the current chromosome, all recorded positions not on this chromosome will be processed and cleared.  If no value, then the whole hash is cleared;" 4
+.IX Item "$chrom = the current chromosome, all recorded positions not on this chromosome will be processed and cleared. If no value, then the whole hash is cleared;"
+.ie n .IP "$pos = the current position, all recorded positions on the current chromosome, before this position, will be cleared;" 4
+.el .IP "\f(CW$pos\fR = the current position, all recorded positions on the current chromosome, before this position, will be cleared;" 4
+.IX Item "$pos = the current position, all recorded positions on the current chromosome, before this position, will be cleared;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The number of cleared positions from the runningBaseCoverage hash.
+Increments the following in the \f(CW$stats\fR hash, if encountered.
+.ie n .IP """collapsedCoverageHist"" > index" 4
+.el .IP "\f(CWcollapsedCoverageHist\fR > index" 4
+.IX Item "collapsedCoverageHist > index"
+.PD 0
+.ie n .IP """nonCollapsedCoverageHist"" > index" 4
+.el .IP "\f(CWnonCollapsedCoverageHist\fR > index" 4
+.IX Item "nonCollapsedCoverageHist > index"
+.PD
+.SS "HistStats(%val)"
+.IX Subsection "HistStats(%val)"
+Calculate the mean and standard deviation of insert sizes in a hash
+.PP
+\&\fBArguments\fR
+.ie n .IP "%val = a hash, with keys = insert size, values = count for each insert size" 4
+.el .IP "\f(CW%val\fR = a hash, with keys = insert size, values = count for each insert size" 4
+.IX Item "%val = a hash, with keys = insert size, values = count for each insert size"
+.PP
+\&\fBReturns\fR
+.PP
+Mean and standard deviation of the insert sizes.
+.SS "insertMapping($tlen,$rnext,$hash,$p)"
+.IX Subsection "insertMapping($tlen,$rnext,$hash,$p)"
+Identifies the paired-end insert size as being within the normal
+						range, abnormally far, or on different chromosomes
+.PP
+\&\fBArguments\fR
+.ie n .IP "$tlen = template length;" 4
+.el .IP "\f(CW$tlen\fR = template length;" 4
+.IX Item "$tlen = template length;"
+.PD 0
+.ie n .IP "$rnext = the chromosome of the other in the pair, = indicates the same;" 4
+.el .IP "\f(CW$rnext\fR = the chromosome of the other in the pair, = indicates the same;" 4
+.IX Item "$rnext = the chromosome of the other in the pair, = indicates the same;"
+.ie n .IP "$hash = reference to a hash collecting statistics;" 4
+.el .IP "\f(CW$hash\fR = reference to a hash collecting statistics;" 4
+.IX Item "$hash = reference to a hash collecting statistics;"
+.ie n .IP "$p = parameter hash;" 4
+.el .IP "\f(CW$p\fR = parameter hash;" 4
+.IX Item "$p = parameter hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A description of the insert mapping.
+  Modifies the reference hash at the following key and returns a string, one of:
+.ie n .IP """normalInsertSize"" : if the template length is less than  ""normalInsertMax"" from $p" 4
+.el .IP "``normalInsertSize'' : if the template length is less than  ``normalInsertMax'' from \f(CW$p\fR" 4
+.IX Item "normalInsertSize : if the template length is less than normalInsertMax from $p"
+Also stores the template length in the hash.
+.ie n .IP """pairsMappedAbnormallyFar"" : if the template length is longer than ""normalInsertMax"" from $p" 4
+.el .IP "``pairsMappedAbnormallyFar'' : if the template length is longer than ``normalInsertMax'' from \f(CW$p\fR" 4
+.IX Item "pairsMappedAbnormallyFar : if the template length is longer than normalInsertMax from $p"
+.PD 0
+.ie n .IP """pairsMappedToDifferentChr"" : if the pair is mapped to a different chromosome" 4
+.el .IP "``pairsMappedToDifferentChr'' : if the pair is mapped to a different chromosome" 4
+.IX Item "pairsMappedToDifferentChr : if the pair is mapped to a different chromosome"
+.PD
+.SS "\fIbam_stats_keys()\fP"
+.IX Subsection "bam_stats_keys()"
+Returns a list of keys for stats obtained directly from the \s-1BAM\s0 file.
+.PP
+See generate_jsonHash for key descriptions.
+.PP
+\&\fBArguments\fR
+.PP
+None
+.PP
+\&\fBReturns\fR
+.PP
+Array of key strings
+.SS "load_json(@files)"
+.IX Subsection "load_json(@files)"
+Open, decode, and store each \s-1JSON\s0 file in a hash with filename keys
+.PP
+\&\fBArguments\fR
+.ie n .IP "@files = a list of json file paths" 4
+.el .IP "\f(CW@files\fR = a list of json file paths" 4
+.IX Item "@files = a list of json file paths"
+.PP
+\&\fBReturns\fR
+.PP
+A hash with basename(filename) keys > decoded \s-1JSON\s0 hash
+.SS "toPhred($char)"
+.IX Subsection "toPhred($char)"
+Convert a character to a phred score (ascii value \- 33)
+.PP
+\&\fBArguments\fR
+.ie n .IP "$char = the single character to convert" 4
+.el .IP "\f(CW$char\fR = the single character to convert" 4
+.IX Item "$char = the single character to convert"
+.PP
+\&\fBReturns\fR
+.PP
+Phred score
+.SS "generate_jsonHash($stats,$p)"
+.IX Subsection "generate_jsonHash($stats,$p)"
+Transforms information in the stats hash to the appropriate keys and
+values for the jsonHash.
+.ie n .IP """aligned bases""" 4
+.el .IP "``aligned bases''" 4
+.IX Item "aligned bases"
+Integer. The (estimated) number of bases that are aligned. alignedCount + insertCount
+from \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R"
+multiplied by the sampling rate (bamqc.pl).
+.ie n .IP """average read length""" 4
+.el .IP "``average read length''" 4
+.IX Item "average read length"
+Float. the average read length is the sum of observed bases
+(aligned + soft clipped + hard clipped + inserted) / # of mapped reads,
+multiplied by the sampling rate (bamqc.pl).
+.ie n .IP """collapsed bases covered""" 4
+.el .IP "``collapsed bases covered''" 4
+.IX Item "collapsed bases covered"
+Integer. See \*(L"runningBaseCoverage($stats,$chrom,$startpos)\*(R"
+.ie n .IP """deleted bases""" 4
+.el .IP "``deleted bases''" 4
+.IX Item "deleted bases"
+The (estimated) number of bases that are hard-clipped. deletionCount
+from \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R"
+multiplied by the sampling rate (bamqc.pl).
+.ie n .IP """hard clip bases""" 4
+.el .IP "``hard clip bases''" 4
+.IX Item "hard clip bases"
+Integer. The (estimated) number of bases that are hard-clipped. hardClipCount
+from \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R"
+multiplied by the sampling rate (bamqc.pl).
+.ie n .IP """insert histogram""" 4
+.el .IP "``insert histogram''" 4
+.IX Item "insert histogram"
+See \*(L"insertMapping($tlen,$rnext,$hash,$p)\*(R". Or empty set {}
+.ie n .IP """insert mean""" 4
+.el .IP "``insert mean''" 4
+.IX Item "insert mean"
+Float. See \*(L"HistStats(%val)\*(R". Float if exists or String \*(L"0\*(R" (bamqc.pl).
+.ie n .IP """insert stdev""" 4
+.el .IP "``insert stdev''" 4
+.IX Item "insert stdev"
+Float. See \*(L"HistStats(%val)\*(R". Float if exists or String \*(L"0\*(R" (bamqc.pl).
+.ie n .IP """inserted bases""" 4
+.el .IP "``inserted bases''" 4
+.IX Item "inserted bases"
+The (estimated) number of bases that are inserted. insertionCount
+from \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R"
+multiplied by the sampling rate (bamqc.pl).
+.ie n .IP """mapped reads""" 4
+.el .IP "``mapped reads''" 4
+.IX Item "mapped reads"
+Integer. A read is considered mapped if it does not have flags: non-primary
+(256) or unmapped (4), or fell below the quality cutoff.
+See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R"
+.ie n .IP """mark duplicates""" 4
+.el .IP "``mark duplicates''" 4
+.IX Item "mark duplicates"
+Hashref. Metrics and histogram from Picard MarkDuplicates.
+.ie n .IP """mate unmapped reads""" 4
+.el .IP "``mate unmapped reads''" 4
+.IX Item "mate unmapped reads"
+Integer. A mate is considered unmapped if it has the flags: paired (1) and mate unmapped (8).
+See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R"
+.ie n .IP """mismatch bases""" 4
+.el .IP "``mismatch bases''" 4
+.IX Item "mismatch bases"
+.PD 0
+.ie n .IP """non collapsed bases covered""" 4
+.el .IP "``non collapsed bases covered''" 4
+.IX Item "non collapsed bases covered"
+.PD
+nonCollapsedCoverageHist
+.ie n .IP """non primary reads""" 4
+.el .IP "``non primary reads''" 4
+.IX Item "non primary reads"
+Integer. See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R".
+.ie n .IP """number of ends""" 4
+.el .IP "``number of ends''" 4
+.IX Item "number of ends"
+String. \*(L"paired end\*(R" if there are more than 0 properly paired reads, \*(L"single end\*(R" otherwise.
+.ie n .IP """number of targets""" 4
+.el .IP "``number of targets''" 4
+.IX Item "number of targets"
+Integer. Set in \*(L"read_bed($file)\*(R". Corresponds to number of lines in the \s-1BED\s0
+file.
+.ie n .IP """paired reads""" 4
+.el .IP "``paired reads''" 4
+.IX Item "paired reads"
+Integer. A read is considered paired if it is a mapped read and has sam flag:
+paired (1). See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R".
+.ie n .IP """properly paired reads""" 4
+.el .IP "``properly paired reads''" 4
+.IX Item "properly paired reads"
+Integer. A read is considered properly paired if it is a mapped read and has sam
+flag: properly paired (2). See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R"
+.ie n .IP """qual cut""" 4
+.el .IP "``qual cut''" 4
+.IX Item "qual cut"
+Integer. Quality cutoff for reads. Supplied to bamqc.pl by \-q or default 30.
+.ie n .IP """qual fail reads""" 4
+.el .IP "``qual fail reads''" 4
+.IX Item "qual fail reads"
+Integer. A read is considered qual fail if it falls below the quality cutoff,
+supplied by \-q. Default 30. See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R"
+.ie n .IP """$read aligned by cycle""" 4
+.el .IP "``$read aligned by cycle''" 4
+.IX Item "$read aligned by cycle"
+List. See \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R".
+.ie n .IP """$read average length""" 4
+.el .IP "``$read average length''" 4
+.IX Item "$read average length"
+.PD 0
+.ie n .IP """$read deletion by cycle""" 4
+.el .IP "``$read deletion by cycle''" 4
+.IX Item "$read deletion by cycle"
+.PD
+List. See \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R".
+.ie n .IP """$read hard clip by cycle""" 4
+.el .IP "``$read hard clip by cycle''" 4
+.IX Item "$read hard clip by cycle"
+List. See \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R".
+.ie n .IP """$read insertion by cycle""" 4
+.el .IP "``$read insertion by cycle''" 4
+.IX Item "$read insertion by cycle"
+List. See \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R".
+.ie n .IP """$read length histogram""" 4
+.el .IP "``$read length histogram''" 4
+.IX Item "$read length histogram"
+Hash. Contains buckets for every read length (bamqc.pl).
+.ie n .IP """$read mismatch by cycle""" 4
+.el .IP "``$read mismatch by cycle''" 4
+.IX Item "$read mismatch by cycle"
+Hash. Searches for \*(L"MD:Z:*\*(R" string and passes it to
+\&\*(L"md_stats($R,$mdstring,$strand,$stats)\*(R".
+.ie n .IP """$read quality by cycle""" 4
+.el .IP "``$read quality by cycle''" 4
+.IX Item "$read quality by cycle"
+Hash. (bamqc.pl).
+.ie n .IP """$read quality histogram""" 4
+.el .IP "``$read quality histogram''" 4
+.IX Item "$read quality histogram"
+Hash. (bamqc.pl).
+.ie n .IP """$read soft clip by cycle""" 4
+.el .IP "``$read soft clip by cycle''" 4
+.IX Item "$read soft clip by cycle"
+List. See \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R".
+.ie n .IP """reads on target""" 4
+.el .IP "``reads on target''" 4
+.IX Item "reads on target"
+Integer. Incremented if \*(L"onTarget($chrom,$start,$mapped,$stats)\*(R" in bamqc.pl.
+.ie n .IP """reads per start point""" 4
+.el .IP "``reads per start point''" 4
+.IX Item "reads per start point"
+Float. See \*(L"assess_start_point($chrom,$s1,$s2,$sphash)\*(R".
+.ie n .IP """soft clip bases""" 4
+.el .IP "``soft clip bases''" 4
+.IX Item "soft clip bases"
+The (estimated) number of bases that are soft-clipped. softClipCount
+from \*(L"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)\*(R"
+multiplied by the sampling rate.
+.ie n .IP """target file""" 4
+.el .IP "``target file''" 4
+.IX Item "target file"
+Path to the \s-1BED\s0 target file.
+.ie n .IP """target size""" 4
+.el .IP "``target size''" 4
+.IX Item "target size"
+The total sum of the target sizes from the target file. See \*(L"read_bed($file)\*(R".
+Targets may be overlapping and so the target space could be higher than the
+actual footprint.
+.ie n .IP """total reads""" 4
+.el .IP "``total reads''" 4
+.IX Item "total reads"
+Integer. Total number of reads * 1.
+.ie n .IP """unmapped reads""" 4
+.el .IP "``unmapped reads''" 4
+.IX Item "unmapped reads"
+Integer. See \*(L"assess_flag($flag,$stats,$qual,$qcut)\*(R"
+.PP
+\&\fBArguments\fR
+.ie n .IP "$stats" 4
+.el .IP "\f(CW$stats\fR" 4
+.IX Item "$stats"
+Hashref. Contains statistics obtained directly from processing the \s-1BAM\s0 file.
+.ie n .IP "$p" 4
+.el .IP "\f(CW$p\fR" 4
+.IX Item "$p"
+Hashref. Contains parameters. Includes configuration values; and \s-1BAM\s0 statistics read from
+auxiliary files, such as the coverage and mark duplicates metrics.
+.PP
+\&\fBReturns\fR
+.PP
+The jsonHash, ready to print.
+.ie n .SS "generate_error_rate( $hash, $prefix )"
+.el .SS "generate_error_rate( \f(CW$hash\fP, \f(CW$prefix\fP )"
+.IX Subsection "generate_error_rate( $hash, $prefix )"
+Compute the error rate with (mismatch+insertion+deletion)/aligned
+.PP
+\&\fBArguments\fR
+.ie n .IP "$hash = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.el .IP "\f(CW$hash\fR = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.IX Item "$hash = The hash containing the JSON file contents to analyse;"
+.PD 0
+.ie n .IP "$prefix = A prefix to use when accessing the keys of hash;" 4
+.el .IP "\f(CW$prefix\fR = A prefix to use when accessing the keys of hash;" 4
+.IX Item "$prefix = A prefix to use when accessing the keys of hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A formatted percentage
+.ie n .SS "generate_mismatch_rate( $hash, $prefix )"
+.el .SS "generate_mismatch_rate( \f(CW$hash\fP, \f(CW$prefix\fP )"
+.IX Subsection "generate_mismatch_rate( $hash, $prefix )"
+Compute the mismatch rate with mismatch/aligned
+.PP
+\&\fBArguments\fR
+.ie n .IP "$hash = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.el .IP "\f(CW$hash\fR = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.IX Item "$hash = The hash containing the JSON file contents to analyse;"
+.PD 0
+.ie n .IP "$prefix = A prefix to use when accessing the keys of hash;" 4
+.el .IP "\f(CW$prefix\fR = A prefix to use when accessing the keys of hash;" 4
+.IX Item "$prefix = A prefix to use when accessing the keys of hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A formatted percentage
+.ie n .SS "generate_indel_rate( $hash, $prefix )"
+.el .SS "generate_indel_rate( \f(CW$hash\fP, \f(CW$prefix\fP )"
+.IX Subsection "generate_indel_rate( $hash, $prefix )"
+Compute the indel rate with (insertion+deletion)/aligned
+.PP
+\&\fBArguments\fR
+.ie n .IP "$hash = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.el .IP "\f(CW$hash\fR = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.IX Item "$hash = The hash containing the JSON file contents to analyse;"
+.PD 0
+.ie n .IP "$prefix = A prefix to use when accessing the keys of hash;" 4
+.el .IP "\f(CW$prefix\fR = A prefix to use when accessing the keys of hash;" 4
+.IX Item "$prefix = A prefix to use when accessing the keys of hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A formatted percentage
+.ie n .SS "generate_softclip_rate( $hash, $prefix )"
+.el .SS "generate_softclip_rate( \f(CW$hash\fP, \f(CW$prefix\fP )"
+.IX Subsection "generate_softclip_rate( $hash, $prefix )"
+Compute the softclip rate with soft clip/(soft clip + aligned)
+.PP
+\&\fBArguments\fR
+.ie n .IP "$hash = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.el .IP "\f(CW$hash\fR = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.IX Item "$hash = The hash containing the JSON file contents to analyse;"
+.PD 0
+.ie n .IP "$prefix = A prefix to use when accessing the keys of hash;" 4
+.el .IP "\f(CW$prefix\fR = A prefix to use when accessing the keys of hash;" 4
+.IX Item "$prefix = A prefix to use when accessing the keys of hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A formatted percentage
+.ie n .SS "generate_hardclip_rate( $hash, $prefix )"
+.el .SS "generate_hardclip_rate( \f(CW$hash\fP, \f(CW$prefix\fP )"
+.IX Subsection "generate_hardclip_rate( $hash, $prefix )"
+Compute the hardclip rate with hard clip/(hard clip + soft clip + aligned)
+.PP
+\&\fBArguments\fR
+.ie n .IP "$hash = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.el .IP "\f(CW$hash\fR = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.IX Item "$hash = The hash containing the JSON file contents to analyse;"
+.PD 0
+.ie n .IP "$prefix = A prefix to use when accessing the keys of hash;" 4
+.el .IP "\f(CW$prefix\fR = A prefix to use when accessing the keys of hash;" 4
+.IX Item "$prefix = A prefix to use when accessing the keys of hash;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+A formatted percentage
+.ie n .SS "get_barcode( $jsonHash)"
+.el .SS "get_barcode( \f(CW$jsonHash\fP)"
+.IX Subsection "get_barcode( $jsonHash)"
+Get the sequencing index / barcode
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PP
+\&\fBReturns\fR
+.PP
+The barcode if it exists; otherwise 'NoIndex'
+.ie n .SS "get_group( $jsonHash)"
+.el .SS "get_group( \f(CW$jsonHash\fP)"
+.IX Subsection "get_group( $jsonHash)"
+Get the group id and group id description
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PP
+\&\fBReturns\fR
+.PP
+The group id and group id description separated by a space, if they exist.
+If they don't exist, then 'na'.
+.ie n .SS "get_hist_cvg($file, #class, $max)"
+.el .SS "get_hist_cvg($file, #class, \f(CW$max\fP)"
+.IX Subsection "get_hist_cvg($file, #class, $max)"
+Generate a cumulative histogram of coverage.
+.PP
+Key = coverage level, value = bases at this level of coverage or greater
+.PP
+\&\fBArguments\fR
+.ie n .IP "$file histogram file input path" 4
+.el .IP "\f(CW$file\fR histogram file input path" 4
+.IX Item "$file histogram file input path"
+.PD 0
+.ie n .IP "$class string at start of each input line" 4
+.el .IP "\f(CW$class\fR string at start of each input line" 4
+.IX Item "$class string at start of each input line"
+.ie n .IP "$max maximum coverage level" 4
+.el .IP "\f(CW$max\fR maximum coverage level" 4
+.IX Item "$max maximum coverage level"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+Hash containing the coverage histogram
+.ie n .SS "get_raw_reads( $jsonHash)"
+.el .SS "get_raw_reads( \f(CW$jsonHash\fP)"
+.IX Subsection "get_raw_reads( $jsonHash)"
+Get the total raw reads, counted by summing mapped, unmapped and qual fail reads
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PP
+\&\fBReturns\fR
+.PP
+The total number of reads (int).
+.ie n .SS "get_raw_yield( $jsonHash)"
+.el .SS "get_raw_yield( \f(CW$jsonHash\fP)"
+.IX Subsection "get_raw_yield( $jsonHash)"
+Get the total raw yield, multipying get_raw_reads by the average read length
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PP
+\&\fBReturns\fR
+.PP
+The total yield (int).
+.ie n .SS "get_map_percent( $jsonHash)"
+.el .SS "get_map_percent( \f(CW$jsonHash\fP)"
+.IX Subsection "get_map_percent( $jsonHash)"
+Get the total map percentage, calculated by dividing mapped reads by
+						total number of reads and multiplying by 100. If total reads is 0,
+						treat as 1.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PP
+\&\fBReturns\fR
+.PP
+The map percentage as an integer.
+.ie n .SS "get_ontarget_percent( $jsonHash)"
+.el .SS "get_ontarget_percent( \f(CW$jsonHash\fP)"
+.IX Subsection "get_ontarget_percent( $jsonHash)"
+Get the total on target percentage by dividing reads on target by
+						the number of mapped reads, and multiplying by 100. If mapped reads
+						is 0, treat as 1.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PP
+\&\fBReturns\fR
+.PP
+The on target percentage as an integer
+.ie n .SS "get_est_yield( $jsonHash)"
+.el .SS "get_est_yield( \f(CW$jsonHash\fP)"
+.IX Subsection "get_est_yield( $jsonHash)"
+Get the estimated total yield by multiplying total aligned based by
+						the on target percentage, and dividing that by reads per start point.
+						If reads per start point is is 0, treat as 1.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$collapse = whether to use reads per start point to collapse down the coverage;" 4
+.el .IP "\f(CW$collapse\fR = whether to use reads per start point to collapse down the coverage;" 4
+.IX Item "$collapse = whether to use reads per start point to collapse down the coverage;"
+.PD 0
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The estimated yield as an integer
+.ie n .SS "get_est_coverage( $jsonHash)"
+.el .SS "get_est_coverage( \f(CW$jsonHash\fP)"
+.IX Subsection "get_est_coverage( $jsonHash)"
+Get the estimated total coverage by dividing estimated yield by
+						the target size.
+						If the target is is 0, treat as 1.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$collapse = whether to use reads per start point to collapse down the coverage;" 4
+.el .IP "\f(CW$collapse\fR = whether to use reads per start point to collapse down the coverage;" 4
+.IX Item "$collapse = whether to use reads per start point to collapse down the coverage;"
+.PD 0
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse." 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The estimated coverage as an integer.
+.ie n .SS "findStart($cigarOp, $start)"
+.el .SS "findStart($cigarOp, \f(CW$start\fP)"
+.IX Subsection "findStart($cigarOp, $start)"
+Find the start index of the read using the cigar string
+.PP
+\&\fBArguments\fR
+.ie n .IP "$cigarOp = the cigar string" 4
+.el .IP "\f(CW$cigarOp\fR = the cigar string" 4
+.IX Item "$cigarOp = the cigar string"
+.PP
+\&\fBReturns\fR
+.PP
+The new start position, adjusted to take soft clipping into account
+.ie n .SS "findEnd($cigarOp, $end)"
+.el .SS "findEnd($cigarOp, \f(CW$end\fP)"
+.IX Subsection "findEnd($cigarOp, $end)"
+Find the start index of the read using the cigar string
+.PP
+\&\fBArguments\fR
+.ie n .IP "$cigarOp = the cigar string;" 4
+.el .IP "\f(CW$cigarOp\fR = the cigar string;" 4
+.IX Item "$cigarOp = the cigar string;"
+.PD 0
+.ie n .IP "$end = the assumed end of the string;" 4
+.el .IP "\f(CW$end\fR = the assumed end of the string;" 4
+.IX Item "$end = the assumed end of the string;"
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The new start position, adjusted to take soft clipping into account
+.SS "read_markdup_metrics($path)"
+.IX Subsection "read_markdup_metrics($path)"
+Read Picard MarkDuplicates text output. Metric keys are:
+.IP "\s-1LIBRARY\s0" 4
+.IX Item "LIBRARY"
+String. The library on which the duplicate marking was performed.
+.IP "\s-1UNPAIRED_READS_EXAMINED\s0" 4
+.IX Item "UNPAIRED_READS_EXAMINED"
+Integer. The number of mapped reads examined which did not have a mapped mate pair, either because the read is unpaired, or the read is paired to an unmapped mate.
+.IP "\s-1READ_PAIRS_EXAMINED\s0" 4
+.IX Item "READ_PAIRS_EXAMINED"
+Integer. The number of mapped read pairs examined. (Primary, non-supplemental)
+.IP "\s-1SECONDARY_OR_SUPPLEMENTARY_RDS\s0" 4
+.IX Item "SECONDARY_OR_SUPPLEMENTARY_RDS"
+Integer. The number of reads that were either secondary or supplementary
+.IP "\s-1UNMAPPED_READS\s0" 4
+.IX Item "UNMAPPED_READS"
+Integer. The total number of unmapped reads examined. (Primary, non-supplemental)
+.IP "\s-1UNPAIRED_READ_DUPLICATES\s0" 4
+.IX Item "UNPAIRED_READ_DUPLICATES"
+Integer. The number of fragments that were marked as duplicates.
+.IP "\s-1READ_PAIR_DUPLICATES\s0" 4
+.IX Item "READ_PAIR_DUPLICATES"
+Integer. The number of read pairs that were marked as duplicates.
+.IP "\s-1READ_PAIR_OPTICAL_DUPLICATES\s0" 4
+.IX Item "READ_PAIR_OPTICAL_DUPLICATES"
+Integer. The number of read pairs duplicates that were caused by optical duplication. Value is always < \s-1READ_PAIR_DUPLICATES,\s0 which counts all duplicates regardless of source.
+.IP "\s-1PERCENT_DUPLICATION\s0" 4
+.IX Item "PERCENT_DUPLICATION"
+Float. The fraction of mapped sequence that is marked as duplicate. Note that it is a <b>fraction</b>, not a percentage. The field name is a bug in Picard, which will not be fixed; see commentary on Github <https://github.com/broadinstitute/picard/issues/157>.
+.IP "\s-1ESTIMATED_LIBRARY_SIZE\s0" 4
+.IX Item "ESTIMATED_LIBRARY_SIZE"
+Integer. The estimated number of unique molecules in the library based on \s-1PE\s0 duplication.
+.IP "\s-1HISTOGRAM\s0" 4
+.IX Item "HISTOGRAM"
+Hash. Histogram indicating return on investment, for sequencing to higher coverage than the observed coverage. The first column is the coverage multiple, and the second column is the multiple of additional actual coverage for the given coverage multiple. See the Picard \s-1FAQ\s0 <http://broadinstitute.github.io/picard/faq.html>.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$path to text output file" 4
+.el .IP "\f(CW$path\fR to text output file" 4
+.IX Item "$path to text output file"
+.PP
+\&\fBReturns\fR
+.PP
+Hashref containing mark duplicates metrics.
