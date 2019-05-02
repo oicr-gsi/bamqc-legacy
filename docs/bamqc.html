@@ -5,7 +5,7 @@
 <title></title>
 <link rel="stylesheet" href="css/style.css" type="text/css" />
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:brew@highsierra-2.local" />
+<link rev="made" href="mailto:root@localhost" />
 </head>
 
 <body>
@@ -34,6 +34,7 @@
       <li><a href="#runningBaseCoverage-stats-chrom-startpos">runningBaseCoverage($stats,$chrom,$startpos)</a></li>
       <li><a href="#HistStats-val">HistStats(%val)</a></li>
       <li><a href="#insertMapping-tlen-rnext-hash-p">insertMapping($tlen,$rnext,$hash,$p)</a></li>
+      <li><a href="#bam_stats_keys">bam_stats_keys()</a></li>
       <li><a href="#load_json-files">load_json(@files)</a></li>
       <li><a href="#toPhred-char">toPhred($char)</a></li>
       <li><a href="#generate_jsonHash-stats-p">generate_jsonHash($stats,$p)</a></li>
@@ -44,6 +45,7 @@
       <li><a href="#generate_hardclip_rate-hash-prefix">generate_hardclip_rate( $hash, $prefix )</a></li>
       <li><a href="#get_barcode-jsonHash">get_barcode( $jsonHash)</a></li>
       <li><a href="#get_group-jsonHash">get_group( $jsonHash)</a></li>
+      <li><a href="#get_hist_cvg-file-class-max">get_hist_cvg($file, #class, $max)</a></li>
       <li><a href="#get_raw_reads-jsonHash">get_raw_reads( $jsonHash)</a></li>
       <li><a href="#get_raw_yield-jsonHash">get_raw_yield( $jsonHash)</a></li>
       <li><a href="#get_map_percent-jsonHash">get_map_percent( $jsonHash)</a></li>
@@ -52,6 +54,7 @@
       <li><a href="#get_est_coverage-jsonHash">get_est_coverage( $jsonHash)</a></li>
       <li><a href="#findStart-cigarOp-start">findStart($cigarOp, $start)</a></li>
       <li><a href="#findEnd-cigarOp-end">findEnd($cigarOp, $end)</a></li>
+      <li><a href="#read_markdup_metrics-path">read_markdup_metrics($path)</a></li>
     </ul>
   </li>
 </ul>
@@ -81,7 +84,7 @@
 
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 
-<p>Copyright (C) 2018 The Ontario Institute for Cancer Research</p>
+<p>Copyright (C) 2019 The Ontario Institute for Cancer Research</p>
 
 <p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
 
@@ -591,6 +594,22 @@
 
 <hr>
 
+<h2 id="bam_stats_keys">bam_stats_keys()</h2>
+
+<p>Returns a list of keys for stats obtained directly from the BAM file.</p>
+
+<p>See generate_jsonHash for key descriptions.</p>
+
+<p><b>Arguments</b></p>
+
+<p>None</p>
+
+<p><b>Returns</b></p>
+
+<p>Array of key strings</p>
+
+<hr>
+
 <h2 id="load_json-files">load_json(@files)</h2>
 
 <p>Open, decode, and store each JSON file in a hash with filename keys</p>
@@ -640,7 +659,7 @@
 <dt id="aligned-bases">&quot;aligned bases&quot;</dt>
 <dd>
 
-<p>The (estimated) number of bases that are aligned. alignedCount + insertCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
+<p>Integer. The (estimated) number of bases that are aligned. alignedCount + insertCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
 
 </dd>
 <dt id="average-read-length">&quot;average read length&quot;</dt>
@@ -664,7 +683,7 @@
 <dt id="hard-clip-bases">&quot;hard clip bases&quot;</dt>
 <dd>
 
-<p>The (estimated) number of bases that are hard-clipped. hardClipCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
+<p>Integer. The (estimated) number of bases that are hard-clipped. hardClipCount from <a href="#cigar_stats-chrom-start1-start2-R-strand-cigar-stats-p">&quot;cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)&quot;</a> multiplied by the sampling rate (bamqc.pl).</p>
 
 </dd>
 <dt id="insert-histogram">&quot;insert histogram&quot;</dt>
@@ -697,7 +716,13 @@
 <p>Integer. A read is considered mapped if it does not have flags: non-primary (256) or unmapped (4), or fell below the quality cutoff. See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
 
 </dd>
-<dt id="mate-unmaped-reads-sic">&quot;mate unmaped reads&quot; [sic]</dt>
+<dt id="mark-duplicates">&quot;mark duplicates&quot;</dt>
+<dd>
+
+<p>Hashref. Metrics and histogram from Picard MarkDuplicates.</p>
+
+</dd>
+<dt id="mate-unmapped-reads">&quot;mate unmapped reads&quot;</dt>
 <dd>
 
 <p>Integer. A mate is considered unmapped if it has the flags: paired (1) and mate unmapped (8). See <a href="#assess_flag-flag-stats-qual-qcut">&quot;assess_flag($flag,$stats,$qual,$qcut)&quot;</a></p>
@@ -861,12 +886,16 @@
 
 <dl>
 
-<dt id="stats-reference-to-the-stats-hash-where-data-is-stored">$stats = reference to the stats hash, where data is stored;</dt>
+<dt id="stats">$stats</dt>
 <dd>
 
+<p>Hashref. Contains statistics obtained directly from processing the BAM file.</p>
+
 </dd>
-<dt id="p-reference-to-the-parameters-hash">$p = reference to the parameters hash;</dt>
+<dt id="p">$p</dt>
 <dd>
+
+<p>Hashref. Contains parameters. Includes configuration values; and BAM statistics read from auxiliary files, such as the coverage and mark duplicates metrics.</p>
 
 </dd>
 </dl>
@@ -1034,6 +1063,36 @@
 <p><b>Returns</b></p>
 
 <p>The group id and group id description separated by a space, if they exist. If they don&#39;t exist, then &#39;na&#39;.</p>
+
+<hr>
+
+<h2 id="get_hist_cvg-file-class-max">get_hist_cvg($file, #class, $max)</h2>
+
+<p>Generate a cumulative histogram of coverage.</p>
+
+<p>Key = coverage level, value = bases at this level of coverage or greater</p>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="file-histogram-file-input-path">$file histogram file input path</dt>
+<dd>
+
+</dd>
+<dt id="class-string-at-start-of-each-input-line">$class string at start of each input line</dt>
+<dd>
+
+</dd>
+<dt id="max-maximum-coverage-level">$max maximum coverage level</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>Hash containing the coverage histogram</p>
 
 <hr>
 
@@ -1206,6 +1265,96 @@
 <p><b>Returns</b></p>
 
 <p>The new start position, adjusted to take soft clipping into account</p>
+
+<hr>
+
+<h2 id="read_markdup_metrics-path">read_markdup_metrics($path)</h2>
+
+<p>Read Picard MarkDuplicates text output. Metric keys are:</p>
+
+<dl>
+
+<dt id="LIBRARY">LIBRARY</dt>
+<dd>
+
+<p>String. The library on which the duplicate marking was performed.</p>
+
+</dd>
+<dt id="UNPAIRED_READS_EXAMINED">UNPAIRED_READS_EXAMINED</dt>
+<dd>
+
+<p>Integer. The number of mapped reads examined which did not have a mapped mate pair, either because the read is unpaired, or the read is paired to an unmapped mate.</p>
+
+</dd>
+<dt id="READ_PAIRS_EXAMINED">READ_PAIRS_EXAMINED</dt>
+<dd>
+
+<p>Integer. The number of mapped read pairs examined. (Primary, non-supplemental)</p>
+
+</dd>
+<dt id="SECONDARY_OR_SUPPLEMENTARY_RDS">SECONDARY_OR_SUPPLEMENTARY_RDS</dt>
+<dd>
+
+<p>Integer. The number of reads that were either secondary or supplementary</p>
+
+</dd>
+<dt id="UNMAPPED_READS">UNMAPPED_READS</dt>
+<dd>
+
+<p>Integer. The total number of unmapped reads examined. (Primary, non-supplemental)</p>
+
+</dd>
+<dt id="UNPAIRED_READ_DUPLICATES">UNPAIRED_READ_DUPLICATES</dt>
+<dd>
+
+<p>Integer. The number of fragments that were marked as duplicates.</p>
+
+</dd>
+<dt id="READ_PAIR_DUPLICATES">READ_PAIR_DUPLICATES</dt>
+<dd>
+
+<p>Integer. The number of read pairs that were marked as duplicates.</p>
+
+</dd>
+<dt id="READ_PAIR_OPTICAL_DUPLICATES">READ_PAIR_OPTICAL_DUPLICATES</dt>
+<dd>
+
+<p>Integer. The number of read pairs duplicates that were caused by optical duplication. Value is always &lt; READ_PAIR_DUPLICATES, which counts all duplicates regardless of source.</p>
+
+</dd>
+<dt id="PERCENT_DUPLICATION">PERCENT_DUPLICATION</dt>
+<dd>
+
+<p>Float. The fraction of mapped sequence that is marked as duplicate. Note that it is a &lt;b&gt;fraction&lt;/b&gt;, not a percentage. The field name is a bug in Picard, which will not be fixed; see <a href="https://github.com/broadinstitute/picard/issues/157">commentary on Github</a>.</p>
+
+</dd>
+<dt id="ESTIMATED_LIBRARY_SIZE">ESTIMATED_LIBRARY_SIZE</dt>
+<dd>
+
+<p>Integer. The estimated number of unique molecules in the library based on PE duplication.</p>
+
+</dd>
+<dt id="HISTOGRAM">HISTOGRAM</dt>
+<dd>
+
+<p>Hash. Histogram indicating return on investment, for sequencing to higher coverage than the observed coverage. The first column is the coverage multiple, and the second column is the multiple of additional actual coverage for the given coverage multiple. See the <a href="http://broadinstitute.github.io/picard/faq.html">Picard FAQ</a>.</p>
+
+</dd>
+</dl>
+
+<p><b>Arguments</b></p>
+
+<dl>
+
+<dt id="path-to-text-output-file">$path to text output file</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p><b>Returns</b></p>
+
+<p>Hashref containing mark duplicates metrics.</p>
 
 
 </body>
