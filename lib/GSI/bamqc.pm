@@ -6,14 +6,13 @@ BEGIN {
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-
     $VERSION = 1.00;
     @ISA     = qw(Exporter);
 
     #@EXPORT	=	qw();
     @EXPORT_OK = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
       onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-      load_json toPhred generate_jsonHash jsonHash_keys
+      load_json toPhred generate_jsonHash bam_stats_keys
       generate_mismatch_rate generate_indel_rate generate_softclip_rate
       generate_hardclip_rate generate_error_rate get_barcode get_group
       get_hist_cvg get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
@@ -456,7 +455,6 @@ sub cigar_stats {
     return ( $readLength, $mappedBases );
 
 }
-
 
 =for html <hr>
 

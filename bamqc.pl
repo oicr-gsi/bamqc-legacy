@@ -365,7 +365,7 @@ sub validate_opts {
     #default sampleRate is 1001 to catch both R1s and R2s more evenly
     $param{sampleRate}      = $opt{'s'} || 1001;
     $param{normalInsertMax} = $opt{'i'} || 1500;
-    $param{outputText}      = $opt{'o'} || 0; # will default to STDERR
+    $param{outputText}      = $opt{'o'}; # if not defined, will default to STDERR
     $param{bedFile}         = $opt{'r'}
       || "/oicr/data/genomes/homo_sapiens/UCSC/Genomic/UCSC_hg19_random/hg19_random.genome.sizes.bed";
     $param{qualCut} = $opt{'q'} || 30;
