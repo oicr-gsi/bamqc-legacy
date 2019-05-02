@@ -1,127 +1,393 @@
-NAME
-    RunReport - Use the JSON produced by GSI::bamqc to generate an HTML page
-
-SYNOPSIS
-      use GSI::RunReport;
-
-DESCRIPTION
-USAGE
-    use SeqWare::Html;
-
-BUGS
-SUPPORT
-AUTHOR
-    Genome Sequence Informatics Ontario Institute for Cancer Research
-    https://github.com/oicr-gsi
-
-COPYRIGHT
-    Copyright (C) 2017 The Ontario Institute for Cancer Research
-
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by the
-    Free Software Foundation; either version 3 of the License, or (at your
-    option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-    Public License for more details.
-
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-
-SEE ALSO
-    perl(1).
-
-  get_possible_headers()
-      Returns the headers that the RunReport supports, mapped to their human-friendly
-      name. The keys in this hash are used by the various reporting methods to create
-      their tables. In order to get tables to print different sets of headers
-      change the parameter passed in: p{table_columns}{data|graph|tsv}.
-
-      Returns: a hash mapping shortnames to human-friendly names for the table header
-
-  get_possible_plot_names()
-      Returns the image short names that the RunReport supports, mapped to their
-      actual PNG filename. The keys in this hash are used by the various reporting
-      methods to create their tables. In order to get tables to print different sets of headers
-      change the parameter passed in: p{plotnames}.
-
-      Returns: a hash mapping shortnames to plot filenames for the table header
-
-  plot_data($jsonHash,$scriptPath)
-      Creates the graphs for the report using jsonToGraphs.pl in the same directory
-      as each JSON file.
-
-      Arguments: $jsonHash = The hash containing the JSON file contents to analyse;
-                 $scriptPath = the directory where jsonToGraphs.pl is located.
-
-  data_table($p,$jsonHash,$sorted_lane_list,$run)
-      Returns the HTML for the main metrics table.
-
-      Arguments: $p=parameters used for the data_table. Required keys:
-                    $p->{table_columns}{data}-the ordered array of shortname for the header
-                    $p->{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;
-                 $jsonHash=A hash containing the JSON files contents to analyse;
-                 $sorted_lane_list=the list of json files in sorted lane order;
-                 $run=the name of the sequencer run.
-
-      Returns: the HTML for the main metrics table.
-
-      See: get_possible_headers
-
-  coverage_table($p,$jsonHash,$sorted_lane_list,$run)
-      Returns the HTML for the coverage table.
-
-      Arguments: $p=parameters used for the coverage_table. Required keys:
-                    $p->{coverageXs}-an array with the N X values to report for coverage
-                 $jsonHash=A hash containing the JSON files contents to analyse;
-                 $sorted_lane_list=the list of json files in sorted lane order;
-                 $run=the name of the sequencer run.
-
-      Returns: the HTML for the coverage table.
-
-  graph_table($p,$jsonHash,$sorted_lane_list,$run)
-      Returns the HTML for the graph table. Note that this does not do the graphing.
-      plot_data must be called to generate graphs.
-
-      Arguments: $p=parameters used for the graph_table. Required keys:
-                      $p->{table_columns}{graph}-the ordered array of shortname for the header
-                 $jsonHash=A hash containing the JSON files contents to analyse;
-                 $sorted_lane_list=the list of json files in sorted lane order;
-                 $run=the name of the sequencer run.
-
-      Returns: the HTML for the graph table.
-
-      See: plot_data, get_possible_headers
-
-  lane_info($p,$jsonHash,$sorted_lane_list,$run)
-      Returns the HTML for the target block.
-
-      Arguments: $p=parameters used for the graph_table. Required keys:
-                      $p->{table_columns}{graph}-the ordered array of shortname for the graph table header
-                      $p->{printAllImages}-whether or not to print all of the images in large
-                 $jsonHash=A hash containing the JSON files contents to analyse;
-                 $sorted_lane_list=the list of json files in sorted lane order;
-                 $run=the name of the sequencer run.
-
-      Returns: the HTML for the lane block.
-
-      See: get_possible_headers
-
-  write_tsv($p,$jsonHash,$sorted_lane_list,$run)
-      Writes a TSV with all "data_table" metrics plus the information from
-      "lane_info". Arbitrarily picks the last JSON file's directory to write the
-      TSV into.
-
-      Arguments: $p=parameters used for the data_table. Required keys:
-                    $p->{table_columns}{tsv}-the ordered array of shortname for the header
-                 $jsonHash=A hash containing the JSON files contents to analyse;
-                 $sorted_lane_list=the list of json files in sorted lane order;
-                 $run=the name of the sequencer run.
-
-      Returns: the HTML pointing to the TSV file
-
-      See: get_possible_headers
-
+.\" Automatically generated by Pod::Man 2.28 (Pod::Simple 3.29)
+.\"
+.\" Standard preamble:
+.\" ========================================================================
+.de Sp \" Vertical space (when we can't use .PP)
+.if t .sp .5v
+.if n .sp
+..
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\" Set up some character translations and predefined strings.  \*(-- will
+.\" give an unbreakable dash, \*(PI will give pi, \*(L" will give a left
+.\" double quote, and \*(R" will give a right double quote.  \*(C+ will
+.\" give a nicer C++.  Capital omega is used to do unbreakable dashes and
+.\" therefore won't be available.  \*(C` and \*(C' expand to `' in nroff,
+.\" nothing in troff, for use with C<>.
+.tr \(*W-
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.ie n \{\
+.    ds -- \(*W-
+.    ds PI pi
+.    if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.    if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\"  diablo 12 pitch
+.    ds L" ""
+.    ds R" ""
+.    ds C` ""
+.    ds C' ""
+'br\}
+.el\{\
+.    ds -- \|\(em\|
+.    ds PI \(*p
+.    ds L" ``
+.    ds R" ''
+.    ds C`
+.    ds C'
+'br\}
+.\"
+.\" Escape single quotes in literal strings from groff's Unicode transform.
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\"
+.\" If the F register is turned on, we'll generate index entries on stderr for
+.\" titles (.TH), headers (.SH), subsections (.SS), items (.Ip), and index
+.\" entries marked with X<> in POD.  Of course, you'll have to process the
+.\" output yourself in some meaningful fashion.
+.\"
+.\" Avoid warning from groff about undefined register 'F'.
+.de IX
+..
+.nr rF 0
+.if \n(.g .if rF .nr rF 1
+.if (\n(rF:(\n(.g==0)) \{
+.    if \nF \{
+.        de IX
+.        tm Index:\\$1\t\\n%\t"\\$2"
+..
+.        if !\nF==2 \{
+.            nr % 0
+.            nr F 2
+.        \}
+.    \}
+.\}
+.rr rF
+.\"
+.\" Accent mark definitions (@(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2).
+.\" Fear.  Run.  Save yourself.  No user-serviceable parts.
+.    \" fudge factors for nroff and troff
+.if n \{\
+.    ds #H 0
+.    ds #V .8m
+.    ds #F .3m
+.    ds #[ \f1
+.    ds #] \fP
+.\}
+.if t \{\
+.    ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.    ds #V .6m
+.    ds #F 0
+.    ds #[ \&
+.    ds #] \&
+.\}
+.    \" simple accents for nroff and troff
+.if n \{\
+.    ds ' \&
+.    ds ` \&
+.    ds ^ \&
+.    ds , \&
+.    ds ~ ~
+.    ds /
+.\}
+.if t \{\
+.    ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.    ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.    ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.    ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.    ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.    ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.\}
+.    \" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.    \" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.    \" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.    ds : e
+.    ds 8 ss
+.    ds o a
+.    ds d- d\h'-1'\(ga
+.    ds D- D\h'-1'\(hy
+.    ds th \o'bp'
+.    ds Th \o'LP'
+.    ds ae ae
+.    ds Ae AE
+.\}
+.rm #[ #] #H #V #F C
+.\" ========================================================================
+.\"
+.IX Title "GSI::RunReport 3"
+.TH GSI::RunReport 3 "2019-05-02" "perl v5.22.1" "User Contributed Perl Documentation"
+.\" For nroff, turn off justification.  Always turn off hyphenation; it makes
+.\" way too many mistakes in technical documents.
+.if n .ad l
+.nh
+.SH "RunReport"
+.IX Header "RunReport"
+.SS "\s-1NAME\s0"
+.IX Subsection "NAME"
+RunReport \- Use the \s-1JSON\s0 produced by GSI::bamqc to generate an \s-1HTML\s0 page
+.SS "\s-1SYNOPSIS\s0"
+.IX Subsection "SYNOPSIS"
+.Vb 1
+\&  use GSI::RunReport;
+.Ve
+.SS "\s-1DESCRIPTION\s0"
+.IX Subsection "DESCRIPTION"
+Takes the \s-1JSON\s0 files produced by GSI::BamQC and produces an \s-1HTML\s0 page with
+nicely rendered graphs and tables.
+.SS "\s-1USAGE\s0"
+.IX Subsection "USAGE"
+.Vb 1
+\&    use SeqWare::Html;
+.Ve
+.SS "\s-1AUTHOR\s0"
+.IX Subsection "AUTHOR"
+Genome Sequence Informatics <https://gsi.oicr.on.ca>,
+Ontario Institute for Cancer Research <https://oicr.on.ca>.
+On Github at <https://github.com/oicr\-gsi/bamqc>.
+.SS "\s-1COPYRIGHT\s0"
+.IX Subsection "COPYRIGHT"
+Copyright (C) 2019 The Ontario Institute for Cancer Research
+.PP
+This program is free software; you can redistribute it and/or modify
+it under the terms of the \s-1GNU\s0 General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+.PP
+This program is distributed in the hope that it will be useful, but
+\&\s-1WITHOUT ANY WARRANTY\s0; without even the implied warranty of
+\&\s-1MERCHANTABILITY\s0 or \s-1FITNESS FOR A PARTICULAR PURPOSE. \s0 See the \s-1GNU\s0
+General Public License for more details.
+.PP
+You should have received a copy of the \s-1GNU\s0 General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+\&\s-1MA 02110\-1301, USA.\s0
+.SH "Subroutines"
+.IX Header "Subroutines"
+.SS "\fIget_possible_headers()\fP"
+.IX Subsection "get_possible_headers()"
+Returns the headers that the RunReport supports, mapped to their human-friendly
+name. The keys in this hash are used by the various reporting methods to create
+their tables. In order to get tables to print different sets of headers
+change the parameter passed in: p{table_columns}{data|graph|tsv}.
+.PP
+\&\fBReturns\fR
+.PP
+A hash mapping shortnames to human-friendly names for the table header
+.SS "\fIget_possible_plot_names()\fP"
+.IX Subsection "get_possible_plot_names()"
+Returns the image short names that the RunReport supports, mapped to their
+actual \s-1PNG\s0 filename. The keys in this hash are used by the various reporting
+methods to create their tables. In order to get tables to print different sets of headers
+change the parameter passed in: p{plotnames}.
+.PP
+\&\fBReturns\fR
+.PP
+A hash mapping shortnames to plot filenames for the table header
+.SS "plot_data($jsonHash,$scriptPath)"
+.IX Subsection "plot_data($jsonHash,$scriptPath)"
+Creates the graphs for the report using jsonToGraphs.pl in the same directory
+as each \s-1JSON\s0 file.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$jsonHash = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.el .IP "\f(CW$jsonHash\fR = The hash containing the \s-1JSON\s0 file contents to analyse;" 4
+.IX Item "$jsonHash = The hash containing the JSON file contents to analyse;"
+.PD 0
+.ie n .IP "$scriptPath = the directory where jsonToGraphs.pl is located." 4
+.el .IP "\f(CW$scriptPath\fR = the directory where jsonToGraphs.pl is located." 4
+.IX Item "$scriptPath = the directory where jsonToGraphs.pl is located."
+.PD
+.SS "data_table($p,$jsonHash,$sorted_lane_list,$run)"
+.IX Subsection "data_table($p,$jsonHash,$sorted_lane_list,$run)"
+Returns the \s-1HTML\s0 for the main metrics table.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$p=parameters used for the data_table. Required keys:" 4
+.el .IP "\f(CW$p\fR=parameters used for the data_table. Required keys:" 4
+.IX Item "$p=parameters used for the data_table. Required keys:"
+.RS 4
+.PD 0
+.ie n .IP "$p\->{table_columns}{data}\-the ordered array of shortname for the header" 4
+.el .IP "\f(CW$p\fR\->{table_columns}{data}\-the ordered array of shortname for the header" 4
+.IX Item "$p->{table_columns}{data}-the ordered array of shortname for the header"
+.ie n .IP "$p\->{noCollapse}\-whether the estimated yield and coverage should be collapsed by \s-1RPSP\s0;" 4
+.el .IP "\f(CW$p\fR\->{noCollapse}\-whether the estimated yield and coverage should be collapsed by \s-1RPSP\s0;" 4
+.IX Item "$p->{noCollapse}-whether the estimated yield and coverage should be collapsed by RPSP;"
+.RE
+.RS 4
+.RE
+.ie n .IP "$jsonHash=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.el .IP "\f(CW$jsonHash\fR=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.IX Item "$jsonHash=A hash containing the JSON files contents to analyse;"
+.ie n .IP "$sorted_lane_list=the list of json files in sorted lane order;" 4
+.el .IP "\f(CW$sorted_lane_list\fR=the list of json files in sorted lane order;" 4
+.IX Item "$sorted_lane_list=the list of json files in sorted lane order;"
+.ie n .IP "$run=the name of the sequencer run." 4
+.el .IP "\f(CW$run\fR=the name of the sequencer run." 4
+.IX Item "$run=the name of the sequencer run."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+The \s-1HTML\s0 for the main metrics table.
+.PP
+\&\fBSee\fR
+.PP
+\&\*(L"\fIget_possible_headers()\fR\*(R"
+.SS "coverage_table($p,$jsonHash,$sorted_lane_list,$run)"
+.IX Subsection "coverage_table($p,$jsonHash,$sorted_lane_list,$run)"
+Returns the \s-1HTML\s0 for the coverage table.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$p=parameters used for the coverage_table. Required keys:" 4
+.el .IP "\f(CW$p\fR=parameters used for the coverage_table. Required keys:" 4
+.IX Item "$p=parameters used for the coverage_table. Required keys:"
+.RS 4
+.PD 0
+.ie n .IP "$p\->{coverageXs}\-an array with the N X values to report for coverage" 4
+.el .IP "\f(CW$p\fR\->{coverageXs}\-an array with the N X values to report for coverage" 4
+.IX Item "$p->{coverageXs}-an array with the N X values to report for coverage"
+.RE
+.RS 4
+.RE
+.ie n .IP "$jsonHash=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.el .IP "\f(CW$jsonHash\fR=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.IX Item "$jsonHash=A hash containing the JSON files contents to analyse;"
+.ie n .IP "$sorted_lane_list=the list of json files in sorted lane order;" 4
+.el .IP "\f(CW$sorted_lane_list\fR=the list of json files in sorted lane order;" 4
+.IX Item "$sorted_lane_list=the list of json files in sorted lane order;"
+.ie n .IP "$run=the name of the sequencer run." 4
+.el .IP "\f(CW$run\fR=the name of the sequencer run." 4
+.IX Item "$run=the name of the sequencer run."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+the \s-1HTML\s0 for the coverage table.
+.SS "graph_table($p,$jsonHash,$sorted_lane_list,$run)"
+.IX Subsection "graph_table($p,$jsonHash,$sorted_lane_list,$run)"
+Returns the \s-1HTML\s0 for the graph table. Note that this does not do the graphing.
+plot_data must be called to generate graphs.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$p=parameters used for the graph_table. Required keys:" 4
+.el .IP "\f(CW$p\fR=parameters used for the graph_table. Required keys:" 4
+.IX Item "$p=parameters used for the graph_table. Required keys:"
+.RS 4
+.PD 0
+.ie n .IP "$p\->{table_columns}{graph}\-the ordered array of shortname for the header" 4
+.el .IP "\f(CW$p\fR\->{table_columns}{graph}\-the ordered array of shortname for the header" 4
+.IX Item "$p->{table_columns}{graph}-the ordered array of shortname for the header"
+.RE
+.RS 4
+.RE
+.ie n .IP "$jsonHash=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.el .IP "\f(CW$jsonHash\fR=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.IX Item "$jsonHash=A hash containing the JSON files contents to analyse;"
+.ie n .IP "$sorted_lane_list=the list of json files in sorted lane order;" 4
+.el .IP "\f(CW$sorted_lane_list\fR=the list of json files in sorted lane order;" 4
+.IX Item "$sorted_lane_list=the list of json files in sorted lane order;"
+.ie n .IP "$run=the name of the sequencer run." 4
+.el .IP "\f(CW$run\fR=the name of the sequencer run." 4
+.IX Item "$run=the name of the sequencer run."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+the \s-1HTML\s0 for the graph table.
+.PP
+\&\fBSee\fR
+.PP
+\&\*(L"plot_data($jsonHash,$scriptPath)\*(R", \*(L"\fIget_possible_headers()\fR\*(R"
+.SS "lane_info($p,$jsonHash,$sorted_lane_list,$run)"
+.IX Subsection "lane_info($p,$jsonHash,$sorted_lane_list,$run)"
+Returns the \s-1HTML\s0 for the target block.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$p=parameters used for the graph_table. Required keys:" 4
+.el .IP "\f(CW$p\fR=parameters used for the graph_table. Required keys:" 4
+.IX Item "$p=parameters used for the graph_table. Required keys:"
+.RS 4
+.PD 0
+.ie n .IP "$p\->{table_columns}{graph}\-the ordered array of shortname for the graph table header" 4
+.el .IP "\f(CW$p\fR\->{table_columns}{graph}\-the ordered array of shortname for the graph table header" 4
+.IX Item "$p->{table_columns}{graph}-the ordered array of shortname for the graph table header"
+.ie n .IP "$p\->{printAllImages}\-whether or not to print all of the images in large" 4
+.el .IP "\f(CW$p\fR\->{printAllImages}\-whether or not to print all of the images in large" 4
+.IX Item "$p->{printAllImages}-whether or not to print all of the images in large"
+.RE
+.RS 4
+.RE
+.ie n .IP "$jsonHash=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.el .IP "\f(CW$jsonHash\fR=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.IX Item "$jsonHash=A hash containing the JSON files contents to analyse;"
+.ie n .IP "$sorted_lane_list=the list of json files in sorted lane order;" 4
+.el .IP "\f(CW$sorted_lane_list\fR=the list of json files in sorted lane order;" 4
+.IX Item "$sorted_lane_list=the list of json files in sorted lane order;"
+.ie n .IP "$run=the name of the sequencer run." 4
+.el .IP "\f(CW$run\fR=the name of the sequencer run." 4
+.IX Item "$run=the name of the sequencer run."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+the \s-1HTML\s0 for the lane block.
+.PP
+\&\fBSee\fR
+.PP
+\&\*(L"\fIget_possible_headers()\fR\*(R"
+.SS "write_tsv($p,$jsonHash,$sorted_lane_list,$run)"
+.IX Subsection "write_tsv($p,$jsonHash,$sorted_lane_list,$run)"
+Writes a \s-1TSV\s0 with all \*(L"data_table\*(R" metrics plus the information from
+\&\*(L"lane_info\*(R". Arbitrarily picks the last \s-1JSON\s0 file's directory to write the
+\&\s-1TSV\s0 into.
+.PP
+\&\fBArguments\fR
+.ie n .IP "$p=parameters used for the data_table. Required keys:" 4
+.el .IP "\f(CW$p\fR=parameters used for the data_table. Required keys:" 4
+.IX Item "$p=parameters used for the data_table. Required keys:"
+.RS 4
+.PD 0
+.ie n .IP "$p\->{table_columns}{tsv}\-the ordered array of shortname for the header" 4
+.el .IP "\f(CW$p\fR\->{table_columns}{tsv}\-the ordered array of shortname for the header" 4
+.IX Item "$p->{table_columns}{tsv}-the ordered array of shortname for the header"
+.RE
+.RS 4
+.RE
+.ie n .IP "$jsonHash=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.el .IP "\f(CW$jsonHash\fR=A hash containing the \s-1JSON\s0 files contents to analyse;" 4
+.IX Item "$jsonHash=A hash containing the JSON files contents to analyse;"
+.ie n .IP "$sorted_lane_list=the list of json files in sorted lane order;" 4
+.el .IP "\f(CW$sorted_lane_list\fR=the list of json files in sorted lane order;" 4
+.IX Item "$sorted_lane_list=the list of json files in sorted lane order;"
+.ie n .IP "$run=the name of the sequencer run." 4
+.el .IP "\f(CW$run\fR=the name of the sequencer run." 4
+.IX Item "$run=the name of the sequencer run."
+.PD
+.PP
+\&\fBReturns\fR
+.PP
+the \s-1HTML\s0 pointing to the \s-1TSV\s0 file
+.PP
+\&\fBSee\fR
+.PP
+\&\*(L"\fIget_possible_headers()\fR\*(R"

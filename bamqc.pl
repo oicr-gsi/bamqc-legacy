@@ -54,7 +54,7 @@ use GSI::bamqc;
 use JSON::PP;    # imports encode_json, decode_json, to_json and from_json
 
 ### ASSESS options and generate the parameter hash
-my $opt_string = "s:i:l:m:r:b:j:q:ch:H:D";
+my $opt_string = "s:i:l:r:b:j:o:q:ch:H:DM:";
 getopts( $opt_string, \%opt ) or usage("Incorrect arguments.");
 
 ### DEBUG, comment out when not in use
@@ -70,47 +70,22 @@ usage(
 
 ### load the bed file, store in the parameter hash
 $p{bed} = GSI::bamqc::read_bed( $p{bedFile} ) if ( $p{bedFile} );
+my $targets_message = "Loaded " . $p{bed}{numberOfTargets} . " targets.\n\n";
 if ( $p{bed} =~ /ERROR/ ) {
     print usage( $p{bed} );
 }
 
+### read histogram and markDuplicates input (if any) into parameter hash
 if ( $p{histFile} ) {
-
     %{ $p{jsonHash}{"non collapsed bases covered"} } =
-      get_hist_cvg( $p{histFile}, "noncollapsed", 2000 )
+      GSI::bamqc::get_hist_cvg( $p{histFile}, "noncollapsed", 2000 )
       ;    ### add to the jsonhash
     %{ $p{jsonHash}{"collapsed bases covered"} } =
-      get_hist_cvg( $p{histFile}, "collapsed", 2000 );
+      GSI::bamqc::get_hist_cvg( $p{histFile}, "collapsed", 2000 );
 }
 
-sub get_hist_cvg {
-    my ( $file, $class, $max ) = @_;
-    ### extract the all lines, and generate a cumulative histogram, 0..2000
-    my @lines = `cat $file | grep "^$class"`;
-    chomp @lines;
-
-    my $cum = 0;
-    my %cvg;
-    my $prev = 0;
-    map {
-        my @f             = split /\t/;
-        my $lvl           = $f[1];
-        my $percent_bases = ( 1 - $cum ) * 100;
-        $cum += $f[4];
-        $cvg{$lvl} = $percent_bases
-          ; ## key = coverage level, value is bases at this level of coverage or greater
-
-        ### fill in
-        for my $l ( ( $prev + 1 ) .. $lvl ) { $cvg{$l} = $percent_bases; }
-        $prev = $lvl;
-    } @lines;
-
-    my %cvg2 = map {
-        my $depth = $cvg{$_} || 0;
-        ( $_, $depth );
-    } 0 .. $max;
-
-    return %cvg2;
+if ( $p{markDupMetrics} ) {
+    $p{markDuplicatesHash} = GSI::bamqc::read_markdup_metrics($p{markDupMetrics});
 }
 
 $p{sortedChars} = [
@@ -118,81 +93,12 @@ $p{sortedChars} = [
 q(! " # $ % & ' \( \) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \\ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~)
 ];
 
-#print STDERR Dumper($p{sortedChars});
 #<$TTY>;
 
 ### initalize entries to 0
 ### form the json hash at the end
 ### keep all information in stats hash
-my %stats = map { ( $_, 0 ) } (
-    "number of ends",
-    "average read length",
-    "insert mean",
-    "insert stdev",
-    "total reads",
-    "mapped reads",
-    "unmapped reads",
-    "non primary reads",
-    "paired reads",
-    "properly paired reads",
-    "mate unmaped reads",
-    "qual fail reads",
-    "qual cut",
-    "aligned bases",
-    "mismatch bases",
-    "inserted bases",
-    "deleted bases",
-    "soft clip bases",
-    "hard clip bases",
-    "reads per start point",
-    "reads on target",
-    "target file",
-    "target size",
-    "number of targets",
-    "non collapsed bases covered",
-    "collapsed bases covered",
-    "insert histogram",
-    "readsMissingMDtags",
-    "hardClipCount",
-    "softClipCount",
-    "deletionCount",
-    "insertCount",
-    "mismatchCount",
-    "meanInsert",
-    "stdevInsert",
-    "pairsMappedAbnormallyFar",
-    "pairsMappedToDifferentChr",
-);
-
-# add mark duplicates metrics (if any) to the stats hash
-my $markdup_label = "PicardMarkDuplicates";
-my @dup_metrics_keys = (
-    "$markdup_label UNPAIRED_READS_EXAMINED",
-    "$markdup_label READ_PAIRS_EXAMINED",
-    "$markdup_label UNMAPPED_READS",
-    "$markdup_label UNPAIRED_READ_DUPLICATES",
-    "$markdup_label READ_PAIR_DUPLICATES",
-    "$markdup_label READ_PAIR_OPTICAL_DUPLICATES",
-    "$markdup_label PERCENT_DUPLICATION",
-    "$markdup_label ESTIMATED_LIBRARY_SIZE"
-);
-my %dup_metrics = ();
-if ($p{dupMetrics}) {
-    %dup_metrics = read_dup_metrics($p{dupMetrics});
-}
-foreach my $key (@dup_metrics_keys) {
-    $stats{$key} = $dup_metrics{$key} || "0";
-}
-
-sub read_dup_metrics {
-    # TODO parse the duplicate metrics file
-
-    my $path = shift;
-
-    my %metrics;
-
-    return %metrics;
-}
+my %stats = map { ( $_, 0 ) } ( GSI::bamqc::bam_stats_keys() );
 
 $stats{bed} = $p{bed};
 ### this will track the reads per startpoint
@@ -383,44 +289,55 @@ $stats{meanInsert}       = ( sprintf "%.6f", $stats{meanInsert} );
 $stats{averageReadLength}{overall} =
   ( sprintf "%.6f", $stats{averageReadLength}{overall} );
 
-#print STDERR Dumper($stats{qualLine});<$TTY>;
-
 ### adjust sample rate on normalInsertSizes
 #map{$stats{normalInsertSizes}{$_}*=$p{sampleRate}} keys %{$stats{normalInsertSizes}};
 
 ### clear out remaining runningBaseCoverage
 my $cleared = GSI::bamqc::runningBaseCoverage( \%stats );
 
-### generate a series of messages to STDERR indicating various statistics
-warn "\n\n";
+my $out;
+if ($p{outputText}) {
+    open $out, ">", $p{outputText} || die "Cannot open text output ".$p{outputText}.": $!";
+} else {
+    $out = *STDERR;
+}
+### write a human-readable text summary indicating various statistics
 
-warn "Total reads: " . $stats{"total reads"} . "\n";
-warn "Mapped reads: " . $stats{"mapped reads"} . "\n";
-warn "Non primary reads: " . $stats{"non primary reads"} . "\n";
-warn "MAPQ < $p{qualCut} reads: " . $stats{"qual fail reads"} . "\n";
-warn "Unmapped reads: " . $stats{"unmapped reads"} . "\n";
+print $out $p{reportBasesMessage};
+print $out $targets_message;
+print $out "\n\n";
 
-warn "Sampled reads: " . $stats{"sampled reads"} . "\n";
-warn "Reads on target: " . $stats{"reads on target"} . "\n\n";
+print $out "Total reads: " . $stats{"total reads"} . "\n";
+print $out "Mapped reads: " . $stats{"mapped reads"} . "\n";
+print $out "Non primary reads: " . $stats{"non primary reads"} . "\n";
+print $out "MAPQ < $p{qualCut} reads: " . $stats{"qual fail reads"} . "\n";
+print $out "Unmapped reads: " . $stats{"unmapped reads"} . "\n";
 
-warn "Reads missing MD tags!: " . $stats{"readsMissingMDtags"} . "\n\n";
+print $out "Sampled reads: " . $stats{"sampled reads"} . "\n";
+print $out "Reads on target: " . $stats{"reads on target"} . "\n\n";
 
-warn "Aligned bases: " . $stats{"alignedCount"} . "\n";
-warn "Soft clipped bases: " . $stats{softClipCount} . "\n";
-warn "Hard clipped bases: " . $stats{hardClipCount} . "\n";
-warn "Mismatched bases: " . $stats{mismatchCount} . "\n";
-warn "Deleted base count: " . $stats{deletionCount} . "\n";
-warn "Inserted base count: " . $stats{insertCount} . "\n";
-warn "Average read length: " . $stats{averageReadLength}{overall} . "\n\n";
+print $out "Reads missing MD tags!: " . $stats{"readsMissingMDtags"} . "\n\n";
 
-warn "Mean insert: " . $stats{meanInsert} . "\n";
-warn "Stdev insert: " . $stats{stdevInsert} . "\n";
-warn "Pairs with insert longer than $p{normalInsertMax}: "
+print $out "Aligned bases: " . $stats{"alignedCount"} . "\n";
+print $out "Soft clipped bases: " . $stats{softClipCount} . "\n";
+print $out "Hard clipped bases: " . $stats{hardClipCount} . "\n";
+print $out "Mismatched bases: " . $stats{mismatchCount} . "\n";
+print $out "Deleted base count: " . $stats{deletionCount} . "\n";
+print $out "Inserted base count: " . $stats{insertCount} . "\n";
+print $out "Average read length: " . $stats{averageReadLength}{overall} . "\n\n";
+
+print $out "Mean insert: " . $stats{meanInsert} . "\n";
+print $out "Stdev insert: " . $stats{stdevInsert} . "\n";
+print $out "Pairs with insert longer than $p{normalInsertMax}: "
   . $stats{pairsMappedAbnormallyFar} . "\n";
-warn "Pairs mapped to different chromosomes: "
+print $out "Pairs mapped to different chromosomes: "
   . $stats{pairsMappedToDifferentChr} . "\n\n";
 
-warn "Reads per start point: " . $stats{startPoint}{RPSP} . "\n\n";
+print $out "Reads per start point: " . $stats{startPoint}{RPSP} . "\n\n";
+
+if ($p{outputText}) {
+    close $out || die "Cannot close text output ".$p{outputText}.": $!";
+}
 
 ### this is adjusted after warnings, to only show the pre-correction on target numbers
 $stats{"reads on target"} *= $p{sampleRate};
@@ -448,6 +365,7 @@ sub validate_opts {
     #default sampleRate is 1001 to catch both R1s and R2s more evenly
     $param{sampleRate}      = $opt{'s'} || 1001;
     $param{normalInsertMax} = $opt{'i'} || 1500;
+    $param{outputText}      = $opt{'o'}; # if not defined, will default to STDERR
     $param{bedFile}         = $opt{'r'}
       || "/oicr/data/genomes/homo_sapiens/UCSC/Genomic/UCSC_hg19_random/hg19_random.genome.sizes.bed";
     $param{qualCut} = $opt{'q'} || 30;
@@ -475,17 +393,6 @@ sub validate_opts {
         }
     }
 
-    #%{$param{jsonHash}}=%{ decode_json($opt{'j'}) } if($opt{'j'});
-
-    if ( $opt{'m'} ) {
-	my $path = $opt{'m'};
-	if ( -e $path) {
-	    $param{dupMetrics} = $path;
-	} else {
-	    die "Duplicate metrics file $path does not exist.";
-	}
-    }
-
     if ( $opt{'b'} ) {
         $param{bamPath}                   = $opt{'b'};
         $param{jsonHash}{"bam path"}      = $opt{'b'};
@@ -494,11 +401,11 @@ sub validate_opts {
     if ( $opt{'c'} ) {
         $param{reportBasesCovered} = 1;
         $param{sampleRate}         = 1;
-        warn "Sampling every read and calculating bases covered.\n";
+	$param{reportBasesMessage} = "Sampling every read and calculating bases covered.\n";
     }
     else {
         $param{reportBasesCovered} = 0;
-        warn "Only sampling every $param{sampleRate} reads.\n";
+	$param{reportBasesMessage} = "Only sampling every $param{sampleRate} reads.\n";
     }
 
     if ( $opt{'D'} ) {
@@ -515,6 +422,15 @@ sub validate_opts {
 
     }
 
+    if ( $opt{'M'} ) {
+	my $path = $opt{'M'};
+	if ( -e $path) {
+	    $param{markDupMetrics} = $path;
+	} else {
+	    die "Duplicate metrics file $path does not exist.";
+	}
+    }
+
     return %param;
 }
 
@@ -523,15 +439,15 @@ sub usage {
     print "Bam file must be sorted by coordinates.\n";
     print "Options are as follows:\n";
     print
-"\t-s sample rate.  Defines how often to sample the reads (default $p{sampleRate}).\n";
+"\t-s sample rate. Defines how often to sample the reads (default $p{sampleRate}).\n";
     print
-"\t-i normal insert max.  Defines upper limit to what is considered a normal insert (default $p{normalInsertMax}).\n";
+"\t-i normal insert max. Defines upper limit to what is considered a normal insert (default $p{normalInsertMax}).\n";
     print
-"\t-m mark duplicates metric file. Text file output by Picard MarkDuplicates. Optional.";
+"\t-o path for human-readable summary text output. Optional, defaults to STDERR.\n";
     print
-"\t-q mapping quality cut.  Reads that map with a quality worse than this will not be considered \"uniquely mapped\" (default $p{qualCut}).\n";
+"\t-q mapping quality cut. Reads that map with a quality worse than this will not be considered \"uniquely mapped\" (default $p{qualCut}).\n";
     print
-"\t-r target.bed.  Bed file containing targets to calculate coverage against (default $p{bedFile}).\n";
+"\t-r target.bed. Bed file containing targets to calculate coverage against (default $p{bedFile}).\n";
     print
 "\t\tNOTE: target.bed file MUST be sorted in the same order as the bam file.\n";
     print
@@ -540,6 +456,8 @@ sub usage {
     print
 "\t-j file containing additional JSON formatted data string. e.g. '{\"sample\":\"TLCR2C10n\",\"library\":\"TLCR_2C10_nn_n_PE_501_nn\",\"barcode\":\"TAGCTT\",\"instrument\":\"h802\",\"run name\":\"110616_SN802_0060_AC00FWACXX\",\"lane\":\"4\"}'\n";
     print "\t-H bedtools histogram file, for coverage analysis\n";
+    print
+"\t-M mark duplicates metric file. Text file output by Picard MarkDuplicates. Optional.\n";
     print "\t-D debug mode\n";
     print "\t-h displays this usage message.\n";
 

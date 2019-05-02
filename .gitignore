@@ -36,3 +36,7 @@ inc/
 
 .DS_Store
 pod2htmd.tmp
+
+# output files from Perl tests
+actual_output.json
+actual_output.txt

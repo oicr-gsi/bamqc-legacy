@@ -12,11 +12,11 @@ BEGIN {
     #@EXPORT	=	qw();
     @EXPORT_OK = qw(read_bed assess_start_point assess_flag cigar_stats md_stats
       onTarget addRunningBaseCoverage runningBaseCoverage HistStats insertMapping
-      load_json toPhred generate_jsonHash
+      load_json toPhred generate_jsonHash bam_stats_keys
       generate_mismatch_rate generate_indel_rate generate_softclip_rate
       generate_hardclip_rate generate_error_rate get_barcode get_group
-      get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
-      get_est_yield get_est_coverage);
+      get_hist_cvg get_raw_reads get_raw_yield get_map_percent get_ontarget_percent
+      get_est_yield get_est_coverage read_markdup_metrics);
 
     #%EXPORT_TAGS = ();
 }
@@ -63,7 +63,7 @@ On Github at L<https://github.com/oicr-gsi/bamqc>.
 
 =head2 COPYRIGHT
 
-Copyright (C) 2018 The Ontario Institute for Cancer Research
+Copyright (C) 2019 The Ontario Institute for Cancer Research
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -93,8 +93,6 @@ use File::Basename;
 ### for debug
 #use Data::Dumper;
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input";
-
-my @month = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
 =for html <hr>
 
@@ -322,7 +320,6 @@ sub read_bed {
     close $BEDFILE;
 
     $bed{numberOfTargets} = $targetCount;
-    warn "Loaded " . $bed{numberOfTargets} . " targets.\n\n";
 
     return \%bed;
 }
@@ -869,6 +866,71 @@ sub insertMapping {
     return $class;
 }
 
+
+=for html <hr>
+
+=head2 bam_stats_keys()
+
+Returns a list of keys for stats obtained directly from the BAM file.
+
+See generate_jsonHash for key descriptions.
+
+B<Arguments>
+
+None
+
+B<Returns>
+
+Array of key strings
+
+=cut
+
+sub bam_stats_keys {
+    # Could instead export an array variable; but this is considered bad practice
+    # Eg. See Perl Exporter documentation
+    my @keys = (
+		"number of ends",
+		"average read length",
+		"insert mean",
+		"insert stdev",
+		"total reads",
+		"mapped reads",
+		"unmapped reads",
+		"non primary reads",
+		"paired reads",
+		"properly paired reads",
+		"mate unmapped reads",
+		"qual fail reads",
+		"qual cut",
+		"aligned bases",
+		"mismatch bases",
+		"inserted bases",
+		"deleted bases",
+		"soft clip bases",
+		"hard clip bases",
+		"reads per start point",
+		"reads on target",
+		"target file",
+		"target size",
+		"number of targets",
+		"non collapsed bases covered",
+		"collapsed bases covered",
+		"insert histogram",
+		"readsMissingMDtags",
+		"alignedCount",
+		"hardClipCount",
+		"softClipCount",
+		"deletionCount",
+		"insertCount",
+		"mismatchCount",
+		"meanInsert",
+		"stdevInsert",
+		"pairsMappedAbnormallyFar",
+		"pairsMappedToDifferentChr"
+	       );
+    return @keys;
+}
+
 =for html <hr>
 
 =head2 load_json(@files)
@@ -893,7 +955,6 @@ sub load_json {
     my @files = @_;
     my %json_hash;
     for my $file (@files) {
-        print STDERR "reading from $file\n";
         open( my $FILE, "<", $file ) or die "Couldn't open $file.\n";
         if ( my $line = <$FILE> ) {
             $json_hash{ basename($file) }           = decode_json($line);
@@ -947,7 +1008,7 @@ values for the jsonHash.
 
 =item "aligned bases"
 
-The (estimated) number of bases that are aligned. alignedCount + insertCount
+Integer. The (estimated) number of bases that are aligned. alignedCount + insertCount
 from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
 multiplied by the sampling rate (bamqc.pl).
 
@@ -969,7 +1030,7 @@ multiplied by the sampling rate (bamqc.pl).
 
 =item "hard clip bases"
 
-The (estimated) number of bases that are hard-clipped. hardClipCount
+Integer. The (estimated) number of bases that are hard-clipped. hardClipCount
 from L</"cigar_stats($chrom,$start1,$start2,$R,$strand,$cigar,$stats,$p)">
 multiplied by the sampling rate (bamqc.pl).
 
@@ -997,7 +1058,11 @@ Integer. A read is considered mapped if it does not have flags: non-primary
 (256) or unmapped (4), or fell below the quality cutoff.
 See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
-=item "mate unmaped reads" [sic]
+=item "mark duplicates"
+
+Hashref. Metrics and histogram from Picard MarkDuplicates.
+
+=item "mate unmapped reads"
 
 Integer. A mate is considered unmapped if it has the flags: paired (1) and mate unmapped (8).
 See L</"assess_flag($flag,$stats,$qual,$qcut)">
@@ -1117,9 +1182,14 @@ B<Arguments>
 
 =over
 
-=item $stats = reference to the stats hash, where data is stored;
+=item $stats
 
-=item $p = reference to the parameters hash;
+Hashref. Contains statistics obtained directly from processing the BAM file.
+
+=item $p
+
+Hashref. Contains parameters. Includes configuration values; and BAM statistics read from
+auxiliary files, such as the coverage and mark duplicates metrics.
 
 =back
 
@@ -1133,29 +1203,7 @@ The jsonHash, ready to print.
 sub generate_jsonHash {
     my ( $stats, $p ) = @_;
 
-    my %jsonHash = map { ( $_, $$stats{$_} ) } (
-        "number of ends",
-        "total reads",
-        "mapped reads",
-        "unmapped reads",
-        "non primary reads",
-        "paired reads",
-        "properly paired reads",
-        "mate unmaped reads",
-        "qual fail reads",
-        "qual cut",
-        "aligned bases",
-        "mismatch bases",
-        "inserted bases",
-        "deleted bases",
-        "soft clip bases",
-        "hard clip bases",
-        "reads per start point",
-        "reads on target",
-        "target file",
-        "target size",
-        "number of targets",
-    );
+    my %jsonHash = map { ( $_, $$stats{$_} ) } ( bam_stats_keys() );
 
     $jsonHash{"total reads"} = $$stats{"total reads"} * 1;
 
@@ -1167,6 +1215,8 @@ sub generate_jsonHash {
     ### capture any jsonHash elements storeed in the parameters
 
     map { $jsonHash{$_} = $$p{jsonHash}{$_}; } keys %{ $$p{jsonHash} };
+
+    $jsonHash{"mark duplicates"} = $$p{markDuplicatesHash} || {};
 
     if ( $$p{reportBasesCovered} ) {
         $jsonHash{"non collapsed bases covered"} =
@@ -1406,6 +1456,64 @@ sub get_group {
           : $jsonHash->{'group id'}
       : "na";
 }
+
+=for html <hr>
+
+=head2 get_hist_cvg($file, #class, $max)
+
+Generate a cumulative histogram of coverage.
+
+Key = coverage level, value = bases at this level of coverage or greater
+
+B<Arguments>
+
+=over
+
+=item $file histogram file input path
+
+=item $class string at start of each input line
+
+=item $max maximum coverage level
+
+=back
+
+B<Returns>
+
+Hash containing the coverage histogram
+
+=cut
+
+
+sub get_hist_cvg {
+    my ( $file, $class, $max ) = @_;
+    ### extract the all lines, and generate a cumulative histogram, 0..2000
+    my @lines = `cat $file | grep "^$class"`;
+    chomp @lines;
+
+    my $cum = 0;
+    my %cvg;
+    my $prev = 0;
+    map {
+        my @f             = split /\t/;
+        my $lvl           = $f[1];
+        my $percent_bases = ( 1 - $cum ) * 100;
+        $cum += $f[4];
+        $cvg{$lvl} = $percent_bases
+          ; ## key = coverage level, value is bases at this level of coverage or greater
+
+        ### fill in
+        for my $l ( ( $prev + 1 ) .. $lvl ) { $cvg{$l} = $percent_bases; }
+        $prev = $lvl;
+    } @lines;
+
+    my %cvg2 = map {
+        my $depth = $cvg{$_} || 0;
+        ( $_, $depth );
+    } 0 .. $max;
+
+    return %cvg2;
+}
+
 
 =for html <hr>
 
@@ -1659,6 +1767,117 @@ sub findEnd {
         }
     }
     return $end;
+}
+
+
+=for html <hr>
+
+=head2 read_markdup_metrics($path)
+
+Read Picard MarkDuplicates text output. Metric keys are:
+
+=over
+
+=item LIBRARY
+
+String. The library on which the duplicate marking was performed.
+
+=item UNPAIRED_READS_EXAMINED
+
+Integer. The number of mapped reads examined which did not have a mapped mate pair, either because the read is unpaired, or the read is paired to an unmapped mate.
+
+=item READ_PAIRS_EXAMINED
+
+Integer. The number of mapped read pairs examined. (Primary, non-supplemental)
+
+=item SECONDARY_OR_SUPPLEMENTARY_RDS
+
+Integer. The number of reads that were either secondary or supplementary
+
+=item UNMAPPED_READS
+
+Integer. The total number of unmapped reads examined. (Primary, non-supplemental)
+
+=item UNPAIRED_READ_DUPLICATES
+
+Integer. The number of fragments that were marked as duplicates.
+
+=item READ_PAIR_DUPLICATES
+
+Integer. The number of read pairs that were marked as duplicates.
+
+=item READ_PAIR_OPTICAL_DUPLICATES
+
+Integer. The number of read pairs duplicates that were caused by optical duplication. Value is always < READ_PAIR_DUPLICATES, which counts all duplicates regardless of source.
+
+=item PERCENT_DUPLICATION
+
+Float. The fraction of mapped sequence that is marked as duplicate. Note that it is a <b>fraction</b>, not a percentage. The field name is a bug in Picard, which will not be fixed; see L<commentary on Github|https://github.com/broadinstitute/picard/issues/157>.
+
+=item ESTIMATED_LIBRARY_SIZE
+
+Integer. The estimated number of unique molecules in the library based on PE duplication.
+
+=item HISTOGRAM
+
+Hash. Histogram indicating return on investment, for sequencing to higher coverage than the observed coverage. The first column is the coverage multiple, and the second column is the multiple of additional actual coverage for the given coverage multiple. See the L<Picard FAQ|http://broadinstitute.github.io/picard/faq.html>.
+
+=back
+
+B<Arguments>
+
+=over
+
+=item $path to text output file
+
+=back
+
+B<Returns>
+
+Hashref containing mark duplicates metrics.
+
+=cut
+
+sub read_markdup_metrics {
+    # parse the duplicate metrics file
+    my $path = shift;
+
+    open my $in, '<', $path || die "Cannot open duplicate metrics path '$path'";
+    my $section = 0;
+    my (@keys, @values);
+    my %hist = ();
+    while (<$in>) {
+	chomp;
+	if (/## METRICS CLASS\s+net\.sf\.picard\.sam\.DuplicationMetrics/) {
+	    $section++;
+	} elsif ($section == 1) {
+	    @keys = split;
+	    $section++;
+	} elsif ($section == 2) {
+	    @values = split;
+	    $section++;
+	} elsif ($section == 3 && /^## HISTOGRAM/) {
+	    $section++;
+	} elsif ($section == 4 && /^BIN\s+VALUE$/) {
+	    $section++;
+	} elsif ($section == 5 && /^[0-9]/) {
+	    my @terms = split;
+	    # convert 10.0 to 10 for hash key (float equal to integer -> integer)
+	    # multiply by 1 to ensure numeric data type for JSON
+	    my $bin = $terms[0] =~ /\.0$/ ? int($terms[0]) : $terms[0] * 1;
+	    $hist{$bin} = $terms[1] * 1;
+	}
+    }
+    close $in || die "Cannot close duplicate metrics path '$path'";
+    if (scalar @keys != scalar @values) {
+	die "Key and value lists from $path are of unequal length";
+    }
+    my %metrics;
+    for (my $i=0;$i<@keys;$i++) {
+	$metrics{$keys[$i]} = $values[$i];
+    }
+    $metrics{HISTOGRAM} = \%hist;
+    return \%metrics;
 }
 
 
