@@ -1060,7 +1060,7 @@ See L</"assess_flag($flag,$stats,$qual,$qcut)">
 
 =item "mark duplicates"
 
-Hash. Metrics and histogram from Picard MarkDuplicates.
+Hashref. Metrics and histogram from Picard MarkDuplicates.
 
 =item "mate unmapped reads"
 
@@ -1820,7 +1820,7 @@ Integer. The estimated number of unique molecules in the library based on PE dup
 
 =item HISTOGRAM
 
-Hash. Histogram, content undocumented.
+Hash. Histogram.
 
 B<Arguments>
 
@@ -1859,10 +1859,11 @@ sub read_markdup_metrics {
 	} elsif ($section == 4 && /^BIN\s+VALUE$/) {
 	    $section++;
 	} elsif ($section == 5 && /^[0-9]/) {
-	    my @words = split;
+	    my @terms = split;
+	    # convert 10.0 to 10 for hash key (float equal to integer -> integer)
 	    # multiply by 1 to ensure numeric data type for JSON
-	    my $bin = $words[0] =~ /\.0$/ ? int($words[0]) : $words[0] * 1;
-	    $hist{$words[0]} = $words[1] * 1;
+	    my $bin = $terms[0] =~ /\.0$/ ? int($terms[0]) : $terms[0] * 1;
+	    $hist{$bin} = $terms[1] * 1;
 	}
     }
     close $in || die "Cannot close duplicate metrics path '$path'";
