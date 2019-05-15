@@ -1844,10 +1844,12 @@ sub read_markdup_metrics {
 
     open my $in, '<', $path || die "Cannot open duplicate metrics path '$path'";
     my $section = 0;
+    my $line = 0;
     my (@keys, @values);
     my %hist = ();
     while (<$in>) {
 	chomp;
+	$line++;
 	if (/## METRICS CLASS\s+net\.sf\.picard\.sam\.DuplicationMetrics/) {
 	    $section++;
 	} elsif ($section == 1) {
@@ -1866,6 +1868,11 @@ sub read_markdup_metrics {
 	    # multiply by 1 to ensure numeric data type for JSON
 	    my $bin = $terms[0] =~ /\.0$/ ? int($terms[0]) : $terms[0] * 1;
 	    $hist{$bin} = $terms[1] * 1;
+	} elsif ((/^#/ && $section < 4) || $_ eq '') {
+	    # header before ## HISTOGRAM, or empty line anywhere
+	    next;
+	} else {
+	    die "Failure to parse duplicate metrics path '$path', section $section, line $line";
 	}
     }
     close $in || die "Cannot close duplicate metrics path '$path'";
