@@ -19,7 +19,7 @@ before_install:
 
 script: 
     - perl Makefile.PL && make
-    - make test
+    - PATH=bin:${PATH} make test
     - make install
 
 after_failure:
