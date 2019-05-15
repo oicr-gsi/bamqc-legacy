@@ -214,7 +214,7 @@ sub get_possible_plot_names {
 
 =for html <hr>
 
-=head2 plot_data($jsonHash,$scriptPath)
+=head2 plot_data($jsonHash)
 
 Creates the graphs for the report using jsonToGraphs.pl in the same directory
 as each JSON file.
@@ -225,18 +225,16 @@ B<Arguments>
 
 =item $jsonHash = The hash containing the JSON file contents to analyse;
 
-=item $scriptPath = the directory where jsonToGraphs.pl is located.
-
 =back
 
 =cut
 
 sub plot_data {
-    my ( $jsonHash, $scriptPath ) = @_;
+    my ( $jsonHash ) = @_;
     for my $report ( keys %$jsonHash ) {
         warn "graphing $report\n";
         my $dest_dir = $jsonHash->{$report}->{dirname} . "/" . $report;
-        system("$scriptPath/jsonToGraphs.pl $dest_dir");
+        system("bamqc-json-to-graphs $dest_dir");
         if ( $? != 0 ) {
             warn "graphing failed for $dest_dir: $?\n";
         }
@@ -482,7 +480,7 @@ the HTML for the graph table.
 
 B<See>
 
-L</plot_data($jsonHash,$scriptPath)>, L</get_possible_headers()>
+L</plot_data($jsonHash)>, L</get_possible_headers()>
 
 =cut
 

@@ -11,4 +11,9 @@ WriteMakefile(
     PREREQ_PM    => {
                      'Test::Simple' => 0.44,
                     },
+    EXE_FILES    => [
+                     'bin/bamqc',
+                     'bin/bamqc-json-to-generic-report',
+                     'bin/bamqc-json-to-graphs'
+                    ]
 );

@@ -22,10 +22,10 @@ sub run_genericrunreport {
     my $expected_tsv="$output_dir/expected_report.tsv";
     my $json_dir=dirname($actual_html);
 
-    my $reporttest="perl jsonToGenericRunReport.pl $run_opts $test_json | grep -v 'Generic Run Report' | grep -v 'SeqWare Browser generated ' | grep -v '<!-- Executed as:' | perl -p -e 's#$json_dir/##g' > $actual_html";
+    my $reporttest="perl bin/bamqc-json-to-generic-report $run_opts $test_json | grep -v 'Generic Run Report' | grep -v 'SeqWare Browser generated ' | grep -v '<!-- Executed as:' | perl -p -e 's#$json_dir/##g' > $actual_html";
     print "########## Running report in $output_dir with options $run_opts\n#\t$reporttest\n";
 
-    is ( system($reporttest), 0, "jsonToGenericRunReport.pl test with opts: '$run_opts' returns 0 exit status");
+    is ( system($reporttest), 0, "bin/bamqc-json-to-generic-report test with opts: '$run_opts' returns 0 exit status");
     ok ( -e $actual_html , "the html output exists at $actual_html");
 
     my $diff = diff $actual_html, $expected_html, { CONTEXT=>1, STYLE=>'OldStyle' };

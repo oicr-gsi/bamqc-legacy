@@ -31,7 +31,6 @@ use GSI::RunReport;
 
 use Data::Dumper;
 
-my $scriptPath = dirname( abs_path($0) );
 my $pathToRoot = "../../../web/seqwareBrowser";
 my $plot_names    = GSI::RunReport::get_possible_plot_names();
 my $table_headers = GSI::RunReport::get_possible_headers();
@@ -110,7 +109,7 @@ map {
     $runList{$run}{$lane}++;
 } keys %jsonHash;
 
-GSI::RunReport::plot_data( \%jsonHash, $scriptPath ) if ( $param{plotData} );
+GSI::RunReport::plot_data( \%jsonHash ) if ( $param{plotData} );
 
 #used for tsv file
 
@@ -151,7 +150,7 @@ print $page;
 exit;
 
 sub usage {
-    print "\nUsage is jsonToGenericRunReport.pl [options] path/to/*.json\n";
+    print "\nUsage is bamqc-json-to-generic-report [options] path/to/*.json\n";
     print "Options are as follows:\n";
     print "\t -c show bases covered data.  Default is no bases covered.\n";
     print "\t-r show read length histogram.  Default is no histogram.\n";

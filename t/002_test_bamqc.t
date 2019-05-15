@@ -20,10 +20,10 @@ sub run_bamqc {
     my $expected_json = "$output_dir/expected_output.json";
     my $expected_txt = "$output_dir/expected_output.txt";
 
-    my $bamqctest="samtools view t/test/neat_5x_EX_hg19_chr21.bam | perl bamqc.pl -r t/test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed $opts > $actual_json 2> $actual_txt";
+    my $bamqctest="samtools view t/test/neat_5x_EX_hg19_chr21.bam | perl bin/bamqc -r t/test/SureSelect_All_Exon_V4_Covered_Sorted_chr21.bed $opts > $actual_json 2> $actual_txt";
     print "################# Running bamqc in $output_dir with options $opts\n#\t$bamqctest\n";   
 
-    is ( system($bamqctest), 0, "bamqc.pl test with opts: '$opts' returns 0 exit status");
+    is ( system($bamqctest), 0, "bamqc test with opts: '$opts' returns 0 exit status");
     ok ( -e $actual_json , "the json output exists at $actual_json");
     ok ( -e $actual_txt, "the text output exists at $actual_txt");
     
