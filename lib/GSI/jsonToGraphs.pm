@@ -1,9 +1,11 @@
 package GSI::jsonToGraphs;
 
 #Original Script : Rob Denroche
-#Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>
-#Last modified : 2015-01-07
-# Copyright (C) 2017 The Ontario Institute for Cancer Research
+#Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>, Iain Bancarz << <ibancarz.oicr.on.ca> >>
+#Last modified : 2019-10-09
+#Updated to process inputs from BamQC Niassa workflow 3.0 as well as 2.x
+#
+# Copyright (C) 2015-2019 The Ontario Institute for Cancer Research
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -213,14 +215,24 @@ sub readlength_histogram {
 ##### insert size distribution
 sub insert_graph {
     my ( $jHash, $p, $path, $title ) = @_;
-    return 0 if ( $$jHash{"number of ends"} eq "single end" );
-
+    my $is_single = 0;
+    if (defined($$jHash{"paired end"}) && $$jHash{"paired end"} == 0) {
+	$is_single = 1; # 3.0+
+    } elsif (defined($$jHash{"number of ends"}) && $$jHash{"number of ends"} eq "single end") {
+	$is_single = 1; # 2.x
+    }
+    return 0 if ($is_single);
     # insert graph
     my @lineX      = ();
     my @lineY      = ();
     my @colours    = ();
     my $insertMean = $$jHash{"insert mean"};
-    my %lineHash   = %{ $$jHash{"insert histogram"} };
+    my %lineHash;
+    if (defined $$jHash{"insert histogram"}) {
+	%lineHash   = %{ $$jHash{"insert histogram"} }; # 2.x
+    } else {
+	%lineHash   = %{ $$jHash{"insert size histogram"} }; # 3.0+
+    }
 
     for my $i ( sort { $a <=> $b } keys %lineHash ) {
         if ( $i < $$p{insertMax} ) {
