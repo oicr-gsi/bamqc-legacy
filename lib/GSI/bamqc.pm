@@ -1553,9 +1553,9 @@ sub get_est_yield {
         $denom = ( $jsonHash->{"reads per start point"} || 1 );
     }
     return
-      int( $jsonHash->{"aligned bases"} *
+      int( ($jsonHash->{"aligned bases"} || $jsonHash->{"bases mapped"} ) *
           ( get_ontarget_percent($jsonHash) / 100 ) /
-          $denom );
+          $denom ); # hash keys for 2.x and 3.0 respectively
 }
 
 =for html <hr>

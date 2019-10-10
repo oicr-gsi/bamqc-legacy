@@ -2,6 +2,7 @@ package GSI::RunReport;
 use strict;
 use warnings;
 use SeqWare::Html;
+use GSI::util qw(is_single_read);
 
 BEGIN {
     use Exporter ();
@@ -573,9 +574,10 @@ sub lane_info {
             "<li>Library: $jsonHash->{$report}{\"library\"}</li>" );
         push( @html_lines,
             "<li>Target file: $jsonHash->{$report}{\"target file\"}</li>" );
-        my $targetSize = format_number( $jsonHash->{$report}{"target size"} );
+        my $targetSize = format_number($jsonHash->{$report}{"target size"} ||
+				       $jsonHash->{$report}{"total target size"}); # 2.x & 3.0
         my $numberOfTargets =
-          format_number( $jsonHash->{$report}{"number of targets"} );
+          format_number( $jsonHash->{$report}{"number of targets"} || 0);
         push( @html_lines, "<li>Target size: $targetSize bp</li>" );
         push( @html_lines, "<li>Number of targets: $numberOfTargets</li>" );
 
@@ -660,6 +662,9 @@ sub write_tsv {
         my $rowHash = get_all_fields( $jsonHash->{$report} );
 
         my @row = @{$rowHash}{@cols};
+	for (my $i=0;$i<@row;$i++) {
+	    $row[$i] = '' if !(defined($row[$i]));
+	}
         $tsv .= join( "\t", @row ) . "\n";
 
        #arbitrarily picking the directory of the last JSON to write the TSV into
@@ -702,7 +707,8 @@ sub get_custom_head {
 #if anything is na, grey it out
 sub format_na {
     my $rowHash = shift;
-    map { $rowHash->{$_} = $NA if ( $rowHash->{$_} eq 'na' ) } keys %$rowHash;
+    map { $rowHash->{$_} = $NA if (!defined($rowHash->{$_}) || $rowHash->{$_} eq 'na') }
+      keys %$rowHash;
     return $rowHash;
 }
 
@@ -723,7 +729,7 @@ sub format_2decimals {
         'indel2'
     );
     foreach my $col (@printf_cols) {
-        if ( ( $rowHash->{$col} ne $NA ) || ( $rowHash->{$col} ne 'na' ) ) {
+        if ( ( $rowHash->{$col} ne $NA ) && ( $rowHash->{$col} ne 'na' ) ) {
             if ( $rowHash->{$col} > 0.1 ) {
                 $rowHash->{$col} = sprintf( "%.2f", $rowHash->{$col} );
             } elsif ($rowHash->{$col} > 0.0001) {
@@ -742,7 +748,7 @@ sub format_big_numbers {
         'target_size', 'num_targets'
     );
     foreach (@format_number_cols) {
-        $rowHash->{$_} = format_number( $rowHash->{$_} );
+        $rowHash->{$_} = format_number( $rowHash->{$_} || 0);
     }
     return $rowHash;
 }
@@ -807,11 +813,10 @@ sub get_all_fields {
     $row{library}   = $jsonHash->{library};
     $row{raw_reads} = GSI::bamqc::get_raw_reads($jsonHash);
     $row{raw_yield} = GSI::bamqc::get_raw_yield($jsonHash);
-    $row{read_length} =
-        $jsonHash->{"number of ends"} eq "paired end"
+    $row{read_length} = !(is_single_read($jsonHash))
       ? $jsonHash->{"read 1 average length"} . ", "
       . $jsonHash->{"read 2 average length"}
-      : sprintf "%.2f", $jsonHash->{"read ? average length"};
+      : sprintf "%.2f", ($jsonHash->{"read ? average length"} || 0.0);
     $row{mapped}    = GSI::bamqc::get_map_percent($jsonHash);
     $row{softclip1} = GSI::bamqc::generate_softclip_rate( $jsonHash, "read 1" );
     $row{softclip2} = GSI::bamqc::generate_softclip_rate( $jsonHash, "read 2" );
@@ -833,10 +838,10 @@ sub get_all_fields {
     $row{coverage}           = GSI::bamqc::get_est_coverage( $jsonHash, 0 );
     $row{collapsed_yield}    = GSI::bamqc::get_est_yield( $jsonHash, 1 );
     $row{collapsed_coverage} = GSI::bamqc::get_est_coverage( $jsonHash, 1 );
-    $row{insert_mean}        = $jsonHash->{"insert mean"}
-      if $jsonHash->{"number of ends"} eq "paired end";
-    $row{ins_stddev} = $jsonHash->{"insert stdev"}
-      if $jsonHash->{"number of ends"} eq "paired end";
+    $row{insert_mean}        = $jsonHash->{"insert mean"} || $jsonHash->{"insert size average"}
+      if !(is_single_read($jsonHash)); # 2.x & 3.0
+    $row{ins_stddev} = $jsonHash->{"insert stdev"} || $jsonHash->{"insert size standard deviation"}
+      if !(is_single_read($jsonHash)); # 2.x & 3.0
 
     $row{target_size} = $jsonHash->{"target size"};
     $row{num_targets} = $jsonHash->{"number of targets"};

@@ -44,6 +44,7 @@ sub new {
 }
 
 use Data::Dumper;
+use GSI::util qw(is_single_read);
 
 #### coverage by depth chart, requires that the json has contains coverage information
 sub coverage_by_depth {
@@ -215,7 +216,7 @@ sub readlength_histogram {
 ##### insert size distribution
 sub insert_graph {
     my ( $jHash, $p, $path, $title ) = @_;
-    return 0 if (_is_single_read($jHash));
+    return 0 if (is_single_read($jHash));
     # insert graph
     my @lineX      = ();
     my @lineY      = ();
@@ -271,7 +272,7 @@ sub quality_by_cycle {
             my %lineHash = %{ $$jHash{"$r quality by cycle"} };
             for my $cyc ( sort { $a <=> $b } keys %lineHash ) {
                 my $qual = $lineHash{$cyc};
-                if ( _is_single_read($jHash)) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $cyc );
                     push( @lineY, $qual );
                 }
@@ -324,7 +325,7 @@ sub mismatch_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r mismatch by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r mismatch by cycle"} };
             for my $cyc ( sort { $a <=> $b } keys %errorHash ) {
-                if ( _is_single_read($jHash)) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $cyc );
                 }
                 else {
@@ -385,7 +386,7 @@ sub indel_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r deletion by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r deletion by cycle"} };
             for my $i ( sort { $a <=> $b } keys %errorHash ) {
-                if ( _is_single_read($jHash)) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $i );
                 }
                 else {
@@ -447,7 +448,7 @@ sub softclip_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r soft clip by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r soft clip by cycle"} };
             for my $i ( sort { $a <=> $b } keys %errorHash ) {
-                if ( _is_single_read($jHash)) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $i );
                 }
                 else {
@@ -517,7 +518,7 @@ sub hardclip_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r hard clip by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r hard clip by cycle"} };
             for my $i ( sort { $a <=> $b } keys %errorHash ) {
-                if ( _is_single_read($jHash)) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $i );
                 }
                 else {
@@ -711,19 +712,6 @@ sub barGraph {
 
     close RFILE;
     `Rscript ${path}/${name}.Rcode`;
-}
-
-### private method to check number of reads
-
-sub _is_single_read {
-    my ($jHash) = @_;
-    my $is_single = 0;
-    if (defined($$jHash{"paired end"}) && not $$jHash{"paired end"}) {
-	$is_single = 1; # 3.0+
-    } elsif (defined($$jHash{"number of ends"}) && $$jHash{"number of ends"} eq "single end") {
-	$is_single = 1; # 2.x
-    }
-    return $is_single;
 }
 
 
