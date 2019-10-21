@@ -88,8 +88,9 @@ MA 02110-1301, USA.
 #################### main pod documentation end ###################
 
 use Exporter;
-use JSON::PP;
+use JSON;
 use File::Basename;
+use File::Slurp qw(read_file);
 ### for debug
 #use Data::Dumper;
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input";
@@ -893,16 +894,18 @@ sub load_json {
     my @files = @_;
     my %json_hash;
     for my $file (@files) {
-        print STDERR "reading from $file\n";
-        open( my $FILE, "<", $file ) or die "Couldn't open $file.\n";
-        if ( my $line = <$FILE> ) {
-            $json_hash{ basename($file) }           = decode_json($line);
+        print STDERR "started reading from $file\n";
+	my $start = time();
+	my $contents = read_file($file);
+	if ($contents) {
+            $json_hash{ basename($file) }           = decode_json($contents);
             $json_hash{ basename($file) }{basename} = basename($file);
             $json_hash{ basename($file) }{dirname}  = dirname($file);
-        }
-        else {
+        } else {
             warn "No data found in $file!\n";
         }
+	my $duration = time() - $start;
+	print STDERR "finished reading from $file after $duration seconds\n";
     }
     return %json_hash;
 }
@@ -1550,9 +1553,9 @@ sub get_est_yield {
         $denom = ( $jsonHash->{"reads per start point"} || 1 );
     }
     return
-      int( $jsonHash->{"aligned bases"} *
+      int( ($jsonHash->{"aligned bases"} || $jsonHash->{"bases mapped"} ) *
           ( get_ontarget_percent($jsonHash) / 100 ) /
-          $denom );
+          $denom ); # hash keys for 2.x and 3.0 respectively
 }
 
 =for html <hr>

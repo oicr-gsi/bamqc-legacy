@@ -1,9 +1,11 @@
 package GSI::jsonToGraphs;
 
 #Original Script : Rob Denroche
-#Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>
-#Last modified : 2015-01-07
-# Copyright (C) 2017 The Ontario Institute for Cancer Research
+#Modifications : Lawrence Heisler << <lheisler.oicr.on.ca> >>, Iain Bancarz << <ibancarz.oicr.on.ca> >>
+#Last modified : 2019-10-09
+#Updated to process inputs from BamQC Niassa workflow 3.0 as well as 2.x
+#
+# Copyright (C) 2015-2019 The Ontario Institute for Cancer Research
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,6 +44,7 @@ sub new {
 }
 
 use Data::Dumper;
+use GSI::util qw(is_single_read);
 
 #### coverage by depth chart, requires that the json has contains coverage information
 sub coverage_by_depth {
@@ -213,14 +216,23 @@ sub readlength_histogram {
 ##### insert size distribution
 sub insert_graph {
     my ( $jHash, $p, $path, $title ) = @_;
-    return 0 if ( $$jHash{"number of ends"} eq "single end" );
-
+    return 0 if (is_single_read($jHash));
     # insert graph
     my @lineX      = ();
     my @lineY      = ();
     my @colours    = ();
-    my $insertMean = $$jHash{"insert mean"};
-    my %lineHash   = %{ $$jHash{"insert histogram"} };
+    my $insertMean;
+    if (defined $$jHash{"insert mean"}) {
+	$insertMean = $$jHash{"insert mean"}; # 2.x
+    } else {
+	$insertMean = $$jHash{"insert size average"}; # 3.0+
+    }
+    my %lineHash;
+    if (defined $$jHash{"insert histogram"}) {
+	%lineHash   = %{ $$jHash{"insert histogram"} }; # 2.x
+    } else {
+	%lineHash   = %{ $$jHash{"insert size histogram"} }; # 3.0+
+    }
 
     for my $i ( sort { $a <=> $b } keys %lineHash ) {
         if ( $i < $$p{insertMax} ) {
@@ -260,7 +272,7 @@ sub quality_by_cycle {
             my %lineHash = %{ $$jHash{"$r quality by cycle"} };
             for my $cyc ( sort { $a <=> $b } keys %lineHash ) {
                 my $qual = $lineHash{$cyc};
-                if ( $$jHash{"number of ends"} eq "single end" ) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $cyc );
                     push( @lineY, $qual );
                 }
@@ -313,7 +325,7 @@ sub mismatch_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r mismatch by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r mismatch by cycle"} };
             for my $cyc ( sort { $a <=> $b } keys %errorHash ) {
-                if ( $$jHash{"number of ends"} eq "single end" ) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $cyc );
                 }
                 else {
@@ -374,7 +386,7 @@ sub indel_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r deletion by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r deletion by cycle"} };
             for my $i ( sort { $a <=> $b } keys %errorHash ) {
-                if ( $$jHash{"number of ends"} eq "single end" ) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $i );
                 }
                 else {
@@ -436,7 +448,7 @@ sub softclip_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r soft clip by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r soft clip by cycle"} };
             for my $i ( sort { $a <=> $b } keys %errorHash ) {
-                if ( $$jHash{"number of ends"} eq "single end" ) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $i );
                 }
                 else {
@@ -506,7 +518,7 @@ sub hardclip_by_cycle {
         if ( ( scalar keys %{ $$jHash{"$r hard clip by cycle"} } ) > 0 ) {
             my %errorHash = %{ $$jHash{"$r hard clip by cycle"} };
             for my $i ( sort { $a <=> $b } keys %errorHash ) {
-                if ( $$jHash{"number of ends"} eq "single end" ) {
+                if ( is_single_read($jHash)) {
                     push( @lineX, $i );
                 }
                 else {
@@ -701,5 +713,6 @@ sub barGraph {
     close RFILE;
     `Rscript ${path}/${name}.Rcode`;
 }
+
 
 1;

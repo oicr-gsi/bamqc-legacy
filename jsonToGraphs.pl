@@ -23,7 +23,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-use JSON::PP;
+use JSON;
 
 #### identify location of this script, which should also contain the library jsonToGraphs.pm
 #### this can be changes should the library already exist in @INC
@@ -116,10 +116,20 @@ my %subs = (
 ### list of subroutines to call
 ### this should be modifiable by including list on the command line
 ### default is to run all of these
-my @plots =
-  qw/readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
-  readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
-  indel_by_cycle softclip_by_cycle hardclip_by_cycle/;
+### 'collapsed base coverage' omitted from BamQC workflow version 3.0+
+
+my @plots;
+if (defined $jsonHash{'workflow_version'}) {
+    @plots =
+      qw/readmap_piechart quality_histogram
+	 readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
+	 indel_by_cycle softclip_by_cycle hardclip_by_cycle/;
+} else {
+    @plots =
+      qw/readmap_piechart quality_histogram collapsed_base_coverage noncollapsed_base_coverage
+	 readlength_histogram insert_graph quality_by_cycle mismatch_by_cycle
+	 indel_by_cycle softclip_by_cycle hardclip_by_cycle/;
+}
 
 #my @plots=qw/coverage_by_depth/;
 
