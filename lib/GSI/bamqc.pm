@@ -90,7 +90,6 @@ MA 02110-1301, USA.
 use Exporter;
 use JSON::PP;
 use File::Basename;
-use File::Slurp qw(read_file);
 ### for debug
 #use Data::Dumper;
 #(open my $TTY,"/dev/tty") || die "unable to open keyboard input";
@@ -896,7 +895,9 @@ sub load_json {
     for my $file (@files) {
         print STDERR "started reading from $file\n";
 	my $start = time();
-	my $contents = read_file($file);
+	open my $fh, '<', $file || die "Cannot open $file: $!";
+	read $fh, my $contents, -s $fh;
+	close $fh || die "Cannot close $file: $!";
 	if ($contents) {
             $json_hash{ basename($file) }           = decode_json($contents);
             $json_hash{ basename($file) }{basename} = basename($file);
