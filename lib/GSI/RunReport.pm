@@ -694,9 +694,12 @@ sub get_custom_head {
     use Cwd qw(abs_path);
     use File::Basename qw(dirname);
     my $scriptPath = dirname( abs_path(__FILE__) );
-    use File::Slurp;
+    my $cssPath = $scriptPath . "/css/runreport.css";
+    open my $fh, '<', $cssPath || die "Cannot open $cssPath: $!";
+    read $fh, my $contents, -s $fh;
+    close $fh || die "Cannot close $cssPath: $!";
     my $htmlHead = "<style type=\"text/css\">\n";
-    $htmlHead .= read_file( $scriptPath . "/css/runreport.css" );
+    $htmlHead .= $contents;
     $htmlHead .= "</style>\n";
     return $htmlHead;
 }
