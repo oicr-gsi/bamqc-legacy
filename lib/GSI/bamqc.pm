@@ -88,7 +88,7 @@ MA 02110-1301, USA.
 #################### main pod documentation end ###################
 
 use Exporter;
-use JSON;
+use JSON::PP;
 use File::Basename;
 use File::Slurp qw(read_file);
 ### for debug
