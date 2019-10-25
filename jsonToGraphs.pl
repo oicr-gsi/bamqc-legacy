@@ -23,7 +23,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-use JSON;
+use JSON::PP;
 
 #### identify location of this script, which should also contain the library jsonToGraphs.pm
 #### this can be changes should the library already exist in @INC
